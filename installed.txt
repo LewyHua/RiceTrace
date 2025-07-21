@@ -1,0 +1,2 @@
+Installed chaincodes on peer:
+Package ID: ricecc_1.0:6e1fdd8bfd8282accd8706c677e8b2eddc7509f1bd3aef0c7fd8ca0ac9b5aa8b, Label: ricecc_1.0
