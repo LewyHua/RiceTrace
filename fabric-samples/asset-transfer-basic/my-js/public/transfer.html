@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>转移批次所有权 - Rice Supply Chain</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+  <div class="container">
+    <h1>转移批次所有权</h1>
+    <label for="transferBatchId">批次ID</label>
+    <input id="transferBatchId" placeholder="batch1234567890" />
+
+    <label for="newOwner">新所有者</label>
+    <input id="newOwner" placeholder="Processor A" />
+
+    <div style="display: flex; justify-content: center; margin: 16px 0;">
+      <button onclick="transferBatch()">转移所有权</button>
+    </div>
+    <pre class="json-box" id="transferResult"></pre>
+    <a href="index.html" class="card-back-link">返回批次列表</a>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    async function transferBatch() {
+      const batchId = document.getElementById("transferBatchId").value.trim();
+      const newOwner = document.getElementById("newOwner").value.trim();
+      const resultBox = document.getElementById("transferResult");
+      resultBox.className = "json-box";
+      if (!batchId || !newOwner) {
+        resultBox.textContent = "请填写批次ID和新所有者。";
+        resultBox.classList.add("result-error");
+        return;
+      }
+      const payload = {
+        newOwner: newOwner,
+        operator: "Processor A"  // 可根据实际改成动态的
+      };
+      try {
+        const res = await fetch(`${baseURL}/batch/${batchId}/transfer`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "X-User-Role": "processor" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          resultBox.textContent = "错误: " + errText;
+          resultBox.className = "result-error";
+          return;
+        }
+        const data = await res.json();
+        resultBox.textContent = "转移成功！\n新所有者: " + newOwner + (data.batchId ? "\n批次ID: " + data.batchId : "");
+        resultBox.className = "result-success";
+      } catch (err) {
+        resultBox.textContent = "错误: " + err.message;
+        resultBox.className = "result-error";
+      }
+    }
+  </script>
+</body>
+</html>
