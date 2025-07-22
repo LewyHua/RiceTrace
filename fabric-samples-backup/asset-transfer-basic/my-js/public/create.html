@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>创建新批次 - Rice Supply Chain</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+  <div class="container">
+    <h1>创建新批次</h1>
+    <label for="location">产地 (location)</label>
+    <input id="location" placeholder="例如: Heilongjiang" />
+
+    <label for="variety">品种 (variety)</label>
+    <input id="variety" placeholder="例如: Japonica" />
+
+    <label for="harvestDate">收获日期 (harvestDate)</label>
+    <input id="harvestDate" type="date" placeholder="YYYY-MM-DD" />
+
+    <label for="result">质检结果 (result)</label>
+    <input id="result" placeholder="Passed / Failed" />
+
+    <label for="owner">所有者 (owner)</label>
+    <input id="owner" placeholder="Farmer Zhang" />
+
+    <div style="display: flex; justify-content: center; margin: 16px 0;">
+      <button onclick="createBatch()">创建批次</button>
+    </div>
+    <pre class="json-box" id="createBatchResult"></pre>
+    <a href="index.html" class="card-back-link">返回批次列表</a>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    async function createBatch() {
+      const payload = {
+        location: document.getElementById("location").value.trim(),
+        variety: document.getElementById("variety").value.trim(),
+        harvestDate: document.getElementById("harvestDate").value,
+        initialTestResult: {
+          testId: `test${Date.now()}`,
+          testerId: "testerA",
+          timestamp: new Date().toISOString(),
+          temperature: "20C",
+          report: "Initial test passed",
+          result: document.getElementById("result").value.trim()
+        },
+        owner: document.getElementById("owner").value.trim(),
+        initialStep: "Harvested",
+        operator: document.getElementById("owner").value.trim()
+      };
+
+      // 简单校验
+      if (!payload.location || !payload.variety || !payload.harvestDate || !payload.owner || !payload.initialTestResult.result) {
+        document.getElementById("createBatchResult").textContent = "请填写所有必填字段。";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${baseURL}/batch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-User-Role": "farmer" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText);
+        }
+        const data = await res.json();
+        document.getElementById("createBatchResult").textContent = "创建成功:\n" + JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById("createBatchResult").textContent = "错误: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

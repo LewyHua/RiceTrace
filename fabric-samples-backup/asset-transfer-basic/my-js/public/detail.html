@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>批次详情</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>批次详情</h1>
+    <label for="queryBatchId">批次ID</label>
+    <input id="queryBatchId" placeholder="batch1234567890">
+    <div style="display: flex; justify-content: center; margin: 16px 0;">
+      <button onclick="getBatch()">查询</button>
+    </div>
+    <div id="batchDetail" class="table-container"></div>
+    <a href="index.html" class="card-back-link">返回列表</a>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    window.onload = function() {
+      const params = new URLSearchParams(window.location.search);
+      const batchId = params.get("batchId");
+      if (batchId) {
+        document.getElementById("queryBatchId").value = batchId;
+        getBatch(); // 自动加载详情
+      }
+    };
+  </script>
+</body>
+</html>
