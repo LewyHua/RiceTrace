@@ -62,7 +62,12 @@ type Product struct {
 
 // InitLedger adds a base set of rice batches to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	now := time.Now().Format(time.RFC3339)
+	// 使用交易时间戳而不是当前系统时间，确保确定性
+	txTimestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+	now := txTimestamp.AsTime().Format(time.RFC3339)
 
 	batches := []RiceBatch{
 		{
@@ -142,7 +147,13 @@ func (s *SmartContract) CreateRiceBatch(ctx contractapi.TransactionContextInterf
 		return fmt.Errorf("the rice batch %s already exists", batchID)
 	}
 
-	now := time.Now().Format(time.RFC3339)
+	// 使用交易时间戳而不是当前系统时间，确保确定性
+	txTimestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+	now := txTimestamp.AsTime().Format(time.RFC3339)
+
 	batch := RiceBatch{
 		DocType:     "riceBatch",
 		BatchID:     batchID,
@@ -188,7 +199,14 @@ func (s *SmartContract) TransferRiceBatch(ctx contractapi.TransactionContextInte
 	if err != nil {
 		return err
 	}
-	now := time.Now().Format(time.RFC3339)
+	
+	// 使用交易时间戳而不是当前系统时间，确保确定性
+	txTimestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+	now := txTimestamp.AsTime().Format(time.RFC3339)
+	
 	oldOwner := batch.CurrentOwner
 	batch.OwnerHistory = append(batch.OwnerHistory, OwnerTransfer{
 		From:      oldOwner,
@@ -210,7 +228,14 @@ func (s *SmartContract) AddProcessingRecord(ctx contractapi.TransactionContextIn
 	if err != nil {
 		return err
 	}
-	now := time.Now().Format(time.RFC3339)
+	
+	// 使用交易时间戳而不是当前系统时间，确保确定性
+	txTimestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+	now := txTimestamp.AsTime().Format(time.RFC3339)
+	
 	batch.ProcessHistory = append(batch.ProcessHistory, ProcessingRecord{
 		Step:      step,
 		Timestamp: now,

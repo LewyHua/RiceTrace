@@ -1,0 +1,1 @@
+export { RiceTracerContract } from './riceTracerContract';
