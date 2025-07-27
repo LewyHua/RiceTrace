@@ -1,0 +1,51 @@
+{
+  "name": "rice-tracer-chaincode-typescript",
+  "version": "1.0.0",
+  "description": "Rice Tracer Smart Contract implemented in TypeScript",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "docker": "docker build -f ./Dockerfile -t rice-tracer-ccaas-typescript .",
+    "package": "npm run build && npm shrinkwrap",
+    "start": "fabric-chaincode-node start"
+  },
+  "engineStrict": true,
+  "author": "RiceTrace Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "fabric-contract-api": "~2.5.4",
+    "fabric-shim": "~2.5.4",
+    "json-stringify-deterministic": "^1.0.12",
+    "sort-keys-recursive": "^2.1.10"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "typescript": "~5.3.0"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "coverage/**",
+      "dist/**"
+    ],
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "all": true,
+    "check-coverage": true,
+    "statements": 100,
+    "branches": 100,
+    "functions": 100,
+    "lines": 100
+  }
+} 
