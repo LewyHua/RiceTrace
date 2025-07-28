@@ -12,8 +12,43 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProductWithBatch = exports.Product = exports.RiceBatch = exports.TestResult = exports.ProcessingRecord = exports.OwnerTransfer = void 0;
+exports.ProductWithBatch = exports.Product = exports.RiceBatch = exports.TestResult = exports.ProcessingRecord = exports.OwnerTransfer = exports.OrganizationInfo = exports.OrganizationType = void 0;
 const fabric_contract_api_1 = require("fabric-contract-api");
+/**
+ * 机构类型枚举
+ */
+var OrganizationType;
+(function (OrganizationType) {
+    OrganizationType[OrganizationType["FARM"] = 1] = "FARM";
+    OrganizationType[OrganizationType["MIDDLEMAN_TESTER"] = 2] = "MIDDLEMAN_TESTER";
+    OrganizationType[OrganizationType["CONSUMER"] = 3] = "CONSUMER"; // 消费者
+})(OrganizationType || (exports.OrganizationType = OrganizationType = {}));
+/**
+ * 机构信息
+ */
+let OrganizationInfo = class OrganizationInfo {
+    constructor() {
+        this.orgId = '';
+        this.orgType = OrganizationType.CONSUMER;
+        this.orgName = '';
+    }
+};
+exports.OrganizationInfo = OrganizationInfo;
+__decorate([
+    (0, fabric_contract_api_1.Property)(),
+    __metadata("design:type", String)
+], OrganizationInfo.prototype, "orgId", void 0);
+__decorate([
+    (0, fabric_contract_api_1.Property)(),
+    __metadata("design:type", Number)
+], OrganizationInfo.prototype, "orgType", void 0);
+__decorate([
+    (0, fabric_contract_api_1.Property)(),
+    __metadata("design:type", String)
+], OrganizationInfo.prototype, "orgName", void 0);
+exports.OrganizationInfo = OrganizationInfo = __decorate([
+    (0, fabric_contract_api_1.Object)()
+], OrganizationInfo);
 /**
  * 所有权转移记录
  */

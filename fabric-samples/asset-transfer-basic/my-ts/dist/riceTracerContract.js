@@ -19,11 +19,86 @@ exports.RiceTracerContract = void 0;
 const fabric_contract_api_1 = require("fabric-contract-api");
 const json_stringify_deterministic_1 = __importDefault(require("json-stringify-deterministic"));
 const sort_keys_recursive_1 = __importDefault(require("sort-keys-recursive"));
+const types_1 = require("./types");
 let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.Contract {
     /**
+     * 根据MSP ID获取机构类型
+     * 这里可以根据实际的组织结构进行配置
+     */
+    getOrganizationType(mspId) {
+        // 根据 MSP ID 映射到机构类型
+        // 可以根据实际情况修改这个映射关系
+        const mspToOrgType = {
+            'Org1MSP': types_1.OrganizationType.FARM, // 农场组织
+            'Org2MSP': types_1.OrganizationType.MIDDLEMAN_TESTER, // 中间商/测试机构
+            'Org3MSP': types_1.OrganizationType.CONSUMER // 消费者组织
+        };
+        return mspToOrgType[mspId] || types_1.OrganizationType.CONSUMER;
+    }
+    /**
+     * 检查调用者是否有权限执行特定操作
+     */
+    checkPermission(ctx, allowedTypes) {
+        const mspId = ctx.clientIdentity.getMSPID();
+        const callerType = this.getOrganizationType(mspId);
+        if (!allowedTypes.includes(callerType)) {
+            const allowedNames = allowedTypes.map(type => {
+                switch (type) {
+                    case types_1.OrganizationType.FARM: return '农场';
+                    case types_1.OrganizationType.MIDDLEMAN_TESTER: return '中间商/测试机构';
+                    case types_1.OrganizationType.CONSUMER: return '消费者';
+                    default: return '未知';
+                }
+            }).join(', ');
+            throw new Error(`权限不足：当前操作只允许以下机构类型调用: ${allowedNames}`);
+        }
+    }
+    /**
+     * 获取调用者机构信息
+     */
+    async GetCallerInfo(ctx) {
+        const mspId = ctx.clientIdentity.getMSPID();
+        const orgType = this.getOrganizationType(mspId);
+        return {
+            orgId: mspId,
+            orgType: orgType,
+            orgName: mspId // 可以根据需要映射到更友好的名称
+        };
+    }
+    /**
+     * 获取所有方法的权限配置
+     */
+    async GetPermissionMatrix(ctx) {
+        const permissionMatrix = {
+            "方法权限配置": {
+                "InitLedger": ["农场"],
+                "CreateRiceBatch": ["农场"],
+                "AddTestResult": ["中间商/测试机构"],
+                "TransferRiceBatch": ["农场", "中间商/测试机构"],
+                "AddProcessingRecord": ["农场", "中间商/测试机构"],
+                "CreateProduct": ["中间商/测试机构"],
+                "ReadProduct": ["所有机构"],
+                "ReadRiceBatch": ["所有机构"],
+                "RiceBatchExists": ["所有机构"],
+                "GetAllRiceBatches": ["所有机构"],
+                "GetCallerInfo": ["所有机构"],
+                "GetPermissionMatrix": ["所有机构"]
+            },
+            "机构类型说明": {
+                "1": "农场 (FARM) - 负责创建批次、初期加工和转移",
+                "2": "中间商/测试机构 (MIDDLEMAN_TESTER) - 负责质检、深加工和产品包装",
+                "3": "消费者 (CONSUMER) - 只能查看信息"
+            }
+        };
+        return JSON.stringify(permissionMatrix, null, 2);
+    }
+    /**
      * 初始化账本数据
+     * 权限：只有农场可以调用
      */
     async InitLedger(ctx) {
+        // 检查权限：只有农场可以初始化账本
+        this.checkPermission(ctx, [types_1.OrganizationType.FARM]);
         // 获取交易时间戳，确保确定性
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
@@ -120,8 +195,11 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 创建新的水稻批次
+     * 权限：只有农场可以调用
      */
     async CreateRiceBatch(ctx, batchId, origin, variety, harvestDate, initialTestResultJSON, owner, initialStep, operator) {
+        // 检查权限：只有农场可以创建批次
+        this.checkPermission(ctx, [types_1.OrganizationType.FARM]);
         const exists = await this.RiceBatchExists(ctx, batchId);
         if (exists) {
             throw new Error(`The rice batch ${batchId} already exists`);
@@ -159,8 +237,11 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 添加质检结果
+     * 权限：只有中间商/测试机构可以调用
      */
     async AddTestResult(ctx, batchId, testResultJSON) {
+        // 检查权限：只有中间商/测试机构可以添加质检结果
+        this.checkPermission(ctx, [types_1.OrganizationType.MIDDLEMAN_TESTER]);
         const batch = await this.ReadRiceBatch(ctx, batchId);
         const testResult = JSON.parse(testResultJSON);
         batch.testResults.push(testResult);
@@ -168,8 +249,11 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 转移批次所有权
+     * 权限：农场和中间商/测试机构可以调用
      */
     async TransferRiceBatch(ctx, batchId, newOwner, operator) {
+        // 检查权限：农场和中间商都可以转移批次所有权
+        this.checkPermission(ctx, [types_1.OrganizationType.FARM, types_1.OrganizationType.MIDDLEMAN_TESTER]);
         const batch = await this.ReadRiceBatch(ctx, batchId);
         // 获取交易时间戳
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -185,8 +269,11 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 添加加工记录
+     * 权限：农场和中间商/测试机构可以调用
      */
     async AddProcessingRecord(ctx, batchId, step, operator) {
+        // 检查权限：农场和中间商都可以添加加工记录
+        this.checkPermission(ctx, [types_1.OrganizationType.FARM, types_1.OrganizationType.MIDDLEMAN_TESTER]);
         const batch = await this.ReadRiceBatch(ctx, batchId);
         // 获取交易时间戳
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -201,8 +288,11 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 创建产品
+     * 权限：只有中间商/测试机构可以调用
      */
     async CreateProduct(ctx, productId, batchId, packageDate, owner) {
+        // 检查权限：只有中间商可以创建最终产品
+        this.checkPermission(ctx, [types_1.OrganizationType.MIDDLEMAN_TESTER]);
         const existingProduct = await ctx.stub.getState(`product_${productId}`);
         if (existingProduct && existingProduct.length > 0) {
             throw new Error(`Product ${productId} already exists`);
@@ -222,6 +312,7 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 读取产品信息（包含关联的批次信息）
+     * 权限：无限制
      */
     async ReadProduct(ctx, productId) {
         const productJSON = await ctx.stub.getState(`product_${productId}`);
@@ -237,6 +328,7 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 读取水稻批次信息
+     * 权限：无限制
      */
     async ReadRiceBatch(ctx, batchId) {
         const batchJSON = await ctx.stub.getState(`batch_${batchId}`);
@@ -247,6 +339,7 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 检查水稻批次是否存在
+     * 权限：无限制
      */
     async RiceBatchExists(ctx, batchId) {
         const batchJSON = await ctx.stub.getState(`batch_${batchId}`);
@@ -254,6 +347,7 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
     /**
      * 获取所有水稻批次
+     * 权限：无限制
      */
     async GetAllRiceBatches(ctx) {
         const resultsIterator = await ctx.stub.getStateByRange('batch_', 'batch_\uffff');
@@ -279,6 +373,20 @@ let RiceTracerContract = class RiceTracerContract extends fabric_contract_api_1.
     }
 };
 exports.RiceTracerContract = RiceTracerContract;
+__decorate([
+    (0, fabric_contract_api_1.Transaction)(false),
+    (0, fabric_contract_api_1.Returns)('OrganizationInfo'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [fabric_contract_api_1.Context]),
+    __metadata("design:returntype", Promise)
+], RiceTracerContract.prototype, "GetCallerInfo", null);
+__decorate([
+    (0, fabric_contract_api_1.Transaction)(false),
+    (0, fabric_contract_api_1.Returns)('string'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [fabric_contract_api_1.Context]),
+    __metadata("design:returntype", Promise)
+], RiceTracerContract.prototype, "GetPermissionMatrix", null);
 __decorate([
     (0, fabric_contract_api_1.Transaction)(),
     __metadata("design:type", Function),
