@@ -5,16 +5,104 @@
 import { Context, Contract, Info, Returns, Transaction } from 'fabric-contract-api';
 import stringify from 'json-stringify-deterministic';
 import sortKeysRecursive from 'sort-keys-recursive';
-import { RiceBatch, Product, ProductWithBatch, TestResult, OwnerTransfer, ProcessingRecord } from './types';
+import { RiceBatch, Product, ProductWithBatch, TestResult, OwnerTransfer, ProcessingRecord, OrganizationType, OrganizationInfo } from './types';
 
 @Info({ title: 'RiceTracerContract', description: 'Smart contract for rice traceability system' })
 export class RiceTracerContract extends Contract {
 
     /**
+     * 根据MSP ID获取机构类型
+     * 这里可以根据实际的组织结构进行配置
+     */
+    private getOrganizationType(mspId: string): OrganizationType {
+        // 根据 MSP ID 映射到机构类型
+        // 可以根据实际情况修改这个映射关系
+        const mspToOrgType: Record<string, OrganizationType> = {
+            'Org1MSP': OrganizationType.FARM,              // 农场组织
+            'Org2MSP': OrganizationType.MIDDLEMAN_TESTER,  // 中间商/测试机构
+            'Org3MSP': OrganizationType.CONSUMER           // 消费者组织
+        };
+
+        return mspToOrgType[mspId] || OrganizationType.CONSUMER;
+    }
+
+    /**
+     * 检查调用者是否有权限执行特定操作
+     */
+    private checkPermission(ctx: Context, allowedTypes: OrganizationType[]): void {
+        const mspId = ctx.clientIdentity.getMSPID();
+        const callerType = this.getOrganizationType(mspId);
+
+        if (!allowedTypes.includes(callerType)) {
+            const allowedNames = allowedTypes.map(type => {
+                switch (type) {
+                    case OrganizationType.FARM: return '农场';
+                    case OrganizationType.MIDDLEMAN_TESTER: return '中间商/测试机构';
+                    case OrganizationType.CONSUMER: return '消费者';
+                    default: return '未知';
+                }
+            }).join(', ');
+            
+            throw new Error(`权限不足：当前操作只允许以下机构类型调用: ${allowedNames}`);
+        }
+    }
+
+    /**
+     * 获取调用者机构信息
+     */
+    @Transaction(false)
+    @Returns('OrganizationInfo')
+    public async GetCallerInfo(ctx: Context): Promise<OrganizationInfo> {
+        const mspId = ctx.clientIdentity.getMSPID();
+        const orgType = this.getOrganizationType(mspId);
+        
+        return {
+            orgId: mspId,
+            orgType: orgType,
+            orgName: mspId // 可以根据需要映射到更友好的名称
+        };
+    }
+
+    /**
+     * 获取所有方法的权限配置
+     */
+    @Transaction(false)
+    @Returns('string')
+    public async GetPermissionMatrix(ctx: Context): Promise<string> {
+        const permissionMatrix = {
+            "方法权限配置": {
+                "InitLedger": ["农场"],
+                "CreateRiceBatch": ["农场"], 
+                "AddTestResult": ["中间商/测试机构"],
+                "TransferRiceBatch": ["农场", "中间商/测试机构"],
+                "AddProcessingRecord": ["农场", "中间商/测试机构"],
+                "CreateProduct": ["中间商/测试机构"],
+                "ReadProduct": ["所有机构"],
+                "ReadRiceBatch": ["所有机构"],
+                "RiceBatchExists": ["所有机构"],
+                "GetAllRiceBatches": ["所有机构"],
+                "GetCallerInfo": ["所有机构"],
+                "GetPermissionMatrix": ["所有机构"]
+            },
+            "机构类型说明": {
+                "1": "农场 (FARM) - 负责创建批次、初期加工和转移",
+                "2": "中间商/测试机构 (MIDDLEMAN_TESTER) - 负责质检、深加工和产品包装",
+                "3": "消费者 (CONSUMER) - 只能查看信息"
+            }
+        };
+        
+        return JSON.stringify(permissionMatrix, null, 2);
+    }
+
+    /**
      * 初始化账本数据
+     * 权限：只有农场可以调用
      */
     @Transaction()
     public async InitLedger(ctx: Context): Promise<void> {
+        // 检查权限：只有农场可以初始化账本
+        this.checkPermission(ctx, [OrganizationType.FARM]);
+
         // 获取交易时间戳，确保确定性
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
@@ -122,6 +210,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 创建新的水稻批次
+     * 权限：只有农场可以调用
      */
     @Transaction()
     public async CreateRiceBatch(
@@ -135,6 +224,9 @@ export class RiceTracerContract extends Contract {
         initialStep: string,
         operator: string
     ): Promise<void> {
+        // 检查权限：只有农场可以创建批次
+        this.checkPermission(ctx, [OrganizationType.FARM]);
+
         const exists = await this.RiceBatchExists(ctx, batchId);
         if (exists) {
             throw new Error(`The rice batch ${batchId} already exists`);
@@ -180,9 +272,13 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 添加质检结果
+     * 权限：只有中间商/测试机构可以调用
      */
     @Transaction()
     public async AddTestResult(ctx: Context, batchId: string, testResultJSON: string): Promise<void> {
+        // 检查权限：只有中间商/测试机构可以添加质检结果
+        this.checkPermission(ctx, [OrganizationType.MIDDLEMAN_TESTER]);
+
         const batch = await this.ReadRiceBatch(ctx, batchId);
         const testResult: TestResult = JSON.parse(testResultJSON);
 
@@ -196,6 +292,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 转移批次所有权
+     * 权限：农场和中间商/测试机构可以调用
      */
     @Transaction()
     public async TransferRiceBatch(
@@ -204,6 +301,9 @@ export class RiceTracerContract extends Contract {
         newOwner: string,
         operator: string
     ): Promise<void> {
+        // 检查权限：农场和中间商都可以转移批次所有权
+        this.checkPermission(ctx, [OrganizationType.FARM, OrganizationType.MIDDLEMAN_TESTER]);
+
         const batch = await this.ReadRiceBatch(ctx, batchId);
 
         // 获取交易时间戳
@@ -226,6 +326,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 添加加工记录
+     * 权限：农场和中间商/测试机构可以调用
      */
     @Transaction()
     public async AddProcessingRecord(
@@ -234,6 +335,9 @@ export class RiceTracerContract extends Contract {
         step: string,
         operator: string
     ): Promise<void> {
+        // 检查权限：农场和中间商都可以添加加工记录
+        this.checkPermission(ctx, [OrganizationType.FARM, OrganizationType.MIDDLEMAN_TESTER]);
+
         const batch = await this.ReadRiceBatch(ctx, batchId);
 
         // 获取交易时间戳
@@ -255,6 +359,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 创建产品
+     * 权限：只有中间商/测试机构可以调用
      */
     @Transaction()
     public async CreateProduct(
@@ -264,6 +369,9 @@ export class RiceTracerContract extends Contract {
         packageDate: string,
         owner: string
     ): Promise<void> {
+        // 检查权限：只有中间商可以创建最终产品
+        this.checkPermission(ctx, [OrganizationType.MIDDLEMAN_TESTER]);
+
         const existingProduct = await ctx.stub.getState(`product_${productId}`);
         if (existingProduct && existingProduct.length > 0) {
             throw new Error(`Product ${productId} already exists`);
@@ -290,6 +398,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 读取产品信息（包含关联的批次信息）
+     * 权限：无限制
      */
     @Transaction(false)
     @Returns('ProductWithBatch')
@@ -310,6 +419,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 读取水稻批次信息
+     * 权限：无限制
      */
     @Transaction(false)
     @Returns('RiceBatch')
@@ -324,6 +434,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 检查水稻批次是否存在
+     * 权限：无限制
      */
     @Transaction(false)
     public async RiceBatchExists(ctx: Context, batchId: string): Promise<boolean> {
@@ -333,6 +444,7 @@ export class RiceTracerContract extends Contract {
 
     /**
      * 获取所有水稻批次
+     * 权限：无限制
      */
     @Transaction(false)
     @Returns('RiceBatch[]')

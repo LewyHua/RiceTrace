@@ -5,6 +5,30 @@
 import { Object, Property } from 'fabric-contract-api';
 
 /**
+ * 机构类型枚举
+ */
+export enum OrganizationType {
+    FARM = 1,           // 农场
+    MIDDLEMAN_TESTER = 2, // 中间商/测试机构
+    CONSUMER = 3        // 消费者
+}
+
+/**
+ * 机构信息
+ */
+@Object()
+export class OrganizationInfo {
+    @Property()
+    public orgId: string = '';
+
+    @Property()
+    public orgType: OrganizationType = OrganizationType.CONSUMER;
+
+    @Property()
+    public orgName: string = '';
+}
+
+/**
  * 所有权转移记录
  */
 @Object()

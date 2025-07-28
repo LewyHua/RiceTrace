@@ -1,4 +1,20 @@
 /**
+ * 机构类型枚举
+ */
+export declare enum OrganizationType {
+    FARM = 1,// 农场
+    MIDDLEMAN_TESTER = 2,// 中间商/测试机构
+    CONSUMER = 3
+}
+/**
+ * 机构信息
+ */
+export declare class OrganizationInfo {
+    orgId: string;
+    orgType: OrganizationType;
+    orgName: string;
+}
+/**
  * 所有权转移记录
  */
 export declare class OwnerTransfer {
