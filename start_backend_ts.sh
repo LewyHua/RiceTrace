@@ -24,6 +24,7 @@ cd ..
 # 编译TypeScript智能合约
 echo "🔨 Building TypeScript chaincode..."
 cd ../asset-transfer-basic/my-ts
+npm install
 npm run build
 cd ../../test-network
 
