@@ -6,3 +6,6 @@ fabric-samples/asset-transfer-basic/my-ts/dist
 fabric-samples/bin
 fabric-samples/builders
 fabric-samples/config
+
+#cursor
+.cursor

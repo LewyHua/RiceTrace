@@ -1,158 +1,222 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap');
+/* 简化的CSS样式 - 以功能为主，避免复杂特效 */
 
 body {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: #f7f7f7;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
   margin: 0;
-  padding: 0;
-  color: #222;
+  padding: 20px;
+  color: #333;
 }
 
 h1, h2, h3 {
-  font-weight: 500;
   color: #ff6f00;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .container {
-  max-width: 1000px;
-  margin: 40px auto;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  padding: 40px 24px 32px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
   position: relative;
 }
 
-.container .card-back-link {
+.card-back-link {
   position: absolute;
-  top: 20px;
-  right: 28px;
-  font-size: 0.98rem;
-  background: rgba(255,255,255,0.85);
-  padding: 4px 12px;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(255,111,0,0.06);
-  z-index: 2;
-}
-.container .card-back-link:hover {
-  background: #fff3e0;
-  color: #ff9100;
+  top: 15px;
+  right: 20px;
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
 }
 
+.card-back-link:hover {
+  color: #ff6f00;
+}
+
+/* 按钮样式 */
 button, .btn {
   background: #ff6f00;
-  color: #fff;
+  color: white;
   border: none;
-  border-radius: 8px;
-  padding: 10px 28px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 4px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(255,111,0,0.08);
-  transition: background 0.2s, box-shadow 0.2s;
-  margin: 8px 0;
-}
-button:hover, .btn:hover {
-  background: #ff9100;
-  box-shadow: 0 4px 16px rgba(255,145,0,0.12);
-}
-
-a {
-  color: #ff6f00;
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-a:hover {
-  color: #ff9100;
-  text-decoration: underline;
+  display: inline-block;
+  font-size: 14px;
 }
 
-input, select, textarea {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 10px 12px;
-  border: 1.5px solid #eee;
-  border-radius: 6px;
-  margin-bottom: 18px;
+button:hover, .btn:hover {
+  background: #e65100;
+}
+
+/* 表单样式 */
+input[type="text"], input[type="date"], input {
   width: 100%;
+  padding: 8px;
+  margin: 5px 0 15px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   box-sizing: border-box;
-  transition: border 0.2s;
-  background: #fafafa;
-}
-input:focus, select:focus, textarea:focus {
-  border: 1.5px solid #ff6f00;
-  outline: none;
-  background: #fffbe7;
 }
 
-#batchTableContainer, .table-container {
-  margin-top: 24px;
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+  color: #555;
 }
+
+/* 表格样式 */
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin: 20px 0;
+  background: white;
 }
-th, td {
-  padding: 14px 12px;
+
+table th {
+  background: #f8f8f8;
+  padding: 12px;
   text-align: left;
-}
-th {
-  background: #fff3e0;
-  color: #ff6f00;
-  font-weight: 500;
-  border-bottom: 2px solid #ffe0b2;
-}
-td {
-  border-bottom: 1px solid #f5f5f5;
-}
-tr:last-child td {
-  border-bottom: none;
+  border: 1px solid #ddd;
+  font-weight: bold;
 }
 
-.result-success {
-  background: #fff3e0;
-  color: #ff6f00;
-  border: 1px solid #ffb74d;
-  border-radius: 6px;
+table td {
   padding: 12px;
-  margin: 12px 0;
-  font-weight: bold;
-  white-space: pre-wrap;
-}
-.result-error {
-  background: #fff1f0;
-  color: #a8071a;
-  border: 1px solid #ffa39e;
-  border-radius: 6px;
-  padding: 12px;
-  margin: 12px 0;
-  font-weight: bold;
-  white-space: pre-wrap;
+  border: 1px solid #ddd;
 }
 
-@media (max-width: 700px) {
+table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+table a {
+  color: #ff6f00;
+  text-decoration: none;
+}
+
+table a:hover {
+  text-decoration: underline;
+}
+
+/* 状态显示 */
+.loading {
+  padding: 20px;
+  text-align: center;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.error {
+  padding: 15px;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.success {
+  padding: 15px;
+  background: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.success a {
+  color: #1976d2;
+}
+
+.stats {
+  background: #e3f2fd;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  text-align: center;
+  color: #1565c0;
+}
+
+/* Action Cards - 简化版本 */
+.action-grid {
+  display: block;
+  margin: 20px 0;
+}
+
+.action-card {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.action-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.action-card p {
+  margin: 0 0 15px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.action-card .btn {
+  width: 200px;
+  text-align: center;
+}
+
+.action-card button.btn {
+  width: 200px;
+}
+
+/* JSON展示 */
+.json-box {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  padding: 15px;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin: 15px 0;
+  border-radius: 4px;
+}
+
+/* 角色按钮 */
+.role-buttons {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.role-buttons button {
+  margin: 10px;
+  padding: 15px 30px;
+  font-size: 16px;
+}
+
+/* 响应式 - 基本版本 */
+@media (max-width: 768px) {
   .container {
-    padding: 18px 6px 18px 6px;
+    margin: 10px;
+    padding: 20px;
   }
-  h1 {
-    font-size: 1.4rem;
+  
+  table {
+    font-size: 12px;
   }
-  table, th, td {
-    font-size: 0.95rem;
+  
+  .action-card .btn {
+    width: 100%;
   }
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  background: #ffe0b2;
-}
-::-webkit-scrollbar-thumb {
-  background: #ffb74d;
-  border-radius: 8px;
 }

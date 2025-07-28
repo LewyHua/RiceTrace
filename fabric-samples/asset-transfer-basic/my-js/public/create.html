@@ -27,7 +27,7 @@
     <input id="owner" placeholder="Farmer Zhang" />
 
     <div style="display: flex; justify-content: center; margin: 16px 0;">
-      <button onclick="createBatch()">创建批次</button>
+      <button onclick="createBatchForm()">创建批次</button>
     </div>
     <pre class="json-box" id="createBatchResult"></pre>
     <a href="index.html" class="card-back-link">返回批次列表</a>
@@ -35,17 +35,17 @@
 
   <script src="common.js"></script>
   <script>
-    async function createBatch() {
+    async function createBatchForm() {
       const payload = {
         location: document.getElementById("location").value.trim(),
         variety: document.getElementById("variety").value.trim(),
         harvestDate: document.getElementById("harvestDate").value,
         initialTestResult: {
           testId: `test${Date.now()}`,
-          testerId: "testerA",
+          testerId: "SystemTester",
           timestamp: new Date().toISOString(),
-          temperature: "20C",
-          report: "Initial test passed",
+          temperature: "20°C",
+          report: "Initial harvest quality check",
           result: document.getElementById("result").value.trim()
         },
         owner: document.getElementById("owner").value.trim(),
@@ -55,24 +55,23 @@
 
       // 简单校验
       if (!payload.location || !payload.variety || !payload.harvestDate || !payload.owner || !payload.initialTestResult.result) {
-        document.getElementById("createBatchResult").textContent = "请填写所有必填字段。";
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写所有必填字段</div>`;
         return;
       }
 
       try {
-        const res = await fetch(`${baseURL}/batch`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-User-Role": "farmer" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
-        }
-        const data = await res.json();
-        document.getElementById("createBatchResult").textContent = "创建成功:\n" + JSON.stringify(data, null, 2);
+        await createBatch(payload, "createBatchResult");
+        
+        // 清空表单
+        document.getElementById("location").value = '';
+        document.getElementById("variety").value = '';
+        document.getElementById("harvestDate").value = '';
+        document.getElementById("result").value = '';
+        document.getElementById("owner").value = '';
+        
       } catch (err) {
-        document.getElementById("createBatchResult").textContent = "错误: " + err.message;
+        // 错误已经在 createBatch 函数中处理了
+        console.error('Failed to create batch:', err);
       }
     }
   </script>

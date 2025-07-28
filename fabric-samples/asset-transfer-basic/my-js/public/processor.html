@@ -8,12 +8,27 @@
 <body>
   <div class="container">
     <h1>加工/质检操作</h1>
-    <ul>
-      <li><a href="transfer.html">转移批次</a></li>
-      <!-- <li><a href="process.html">加工批次</a></li> -->
-      <!-- <li><a href="test.html">质检批次</a></li> -->
-      <!-- <li><a href="all-batches.html">查看所有批次</a></li> -->
-    </ul>
+    <div class="action-grid">
+      <div class="action-card">
+        <h3>转移批次</h3>
+        <p>转移批次所有权给其他机构</p>
+        <a href="transfer.html" class="btn">转移所有权</a>
+      </div>
+      <div class="action-card">
+        <h3>查看批次</h3>
+        <p>查看可处理的批次列表</p>
+        <button class="btn" onclick="loadProcessorBatches()">查看批次</button>
+      </div>
+    </div>
+    
+    <div id="batchTableContainer"></div>
+    
+    <script src="common.js"></script>
+    <script>
+      async function loadProcessorBatches() {
+        await getAllBatches('processor');
+      }
+    </script>
     <a href="index.html" class="card-back-link">返回身份选择</a>
   </div>
 </body>
