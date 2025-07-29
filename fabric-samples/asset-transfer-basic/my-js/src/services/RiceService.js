@@ -1,4 +1,5 @@
 const fabricDAO = require('../dao/FabricDAO');
+const oracleClient = require('../clients/OracleClient');
 const { errorCodes } = require('../../config');
 
 /**
@@ -138,19 +139,16 @@ class RiceService {
   }
 
   /**
-   * 添加质检结果
+   * 添加质检结果 (支持Oracle验证)
    * @param {string} role - 调用者角色
    * @param {string} batchId - 批次ID
-   * @param {Object} testData - 质检数据
+   * @param {Object} testData - 质检数据 (可包含externalReportId)
    * @returns {Promise<Object>} 操作结果
    */
   async addTestResult(role, batchId, testData) {
     if (!batchId) {
       throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
     }
-
-    // 验证质检数据
-    this._validateTestData(testData);
 
     try {
       // 检查批次是否存在
@@ -159,18 +157,44 @@ class RiceService {
         throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
       }
 
-      // 添加时间戳
-      const testResult = {
-        ...testData,
-        timestamp: testData.timestamp || new Date().toISOString()
-      };
+      let finalTestResult;
 
-      await fabricDAO.submitTransaction(role, 'AddTestResult', batchId, JSON.stringify(testResult));
+      // 判断是否使用Oracle验证
+      if (testData.externalReportId) {
+        // 使用Oracle验证外部报告
+        console.log(`正在验证外部报告: ${testData.externalReportId}`);
+        const verificationResult = await oracleClient.verifyTestReport(testData.externalReportId);
+        
+        // 使用Oracle验证后的数据
+        finalTestResult = {
+          ...verificationResult.data,
+          timestamp: verificationResult.verifiedAt
+        };
+
+        console.log(`✅ Oracle验证成功: ${testData.externalReportId}`);
+      } else {
+        // 传统方式：验证用户提供的质检数据
+        this._validateTestData(testData);
+        
+        finalTestResult = {
+          ...testData,
+          timestamp: testData.timestamp || new Date().toISOString(),
+          isVerified: false,
+          verificationSource: null
+        };
+      }
+
+      // 提交到区块链
+      await fabricDAO.submitTransaction(role, 'AddTestResult', batchId, JSON.stringify(finalTestResult));
       
       return {
-        message: '质检结果已添加',
+        message: finalTestResult.isVerified ? 
+          '质检结果已添加 (Oracle验证)' : 
+          '质检结果已添加 (手动输入)',
         batchId,
-        testId: testResult.testId
+        testId: finalTestResult.testId,
+        isVerified: finalTestResult.isVerified,
+        verificationSource: finalTestResult.verificationSource
       };
     } catch (error) {
       throw new Error(`添加质检结果失败: ${error.message}`);
@@ -251,6 +275,18 @@ class RiceService {
    */
   _generateBatchId() {
     return `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * 获取Oracle服务状态
+   * @returns {Object} Oracle服务状态
+   */
+  async getOracleStatus() {
+    try {
+      return oracleClient.getServiceStatus();
+    } catch (error) {
+      throw new Error(`获取Oracle状态失败: ${error.message}`);
+    }
   }
 
   /**

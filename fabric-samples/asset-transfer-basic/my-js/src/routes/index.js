@@ -1,7 +1,7 @@
 const express = require('express');
 const batchController = require('../controllers/batchController');
 const productController = require('../controllers/productController');
-const { checkRolePermission, validateRequest, validateParams, logUserAction } = require('../middleware/authMiddleware');
+const { extractRole, checkRolePermission, validateRequest, validateParams, logUserAction } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -16,6 +16,12 @@ router.use(logUserAction);
 router.get('/batch/stats', 
   ...checkRolePermission('getAll'), 
   batchController.getBatchStats
+);
+
+// 获取Oracle服务状态
+router.get('/oracle/status', 
+  extractRole, // 只需要提取角色，不限制权限
+  batchController.getOracleStatus
 );
 
 // 获取所有批次
@@ -46,11 +52,11 @@ router.put('/batch/:id/transfer',
   batchController.transferBatch
 );
 
-// 添加质检结果
+// 添加质检结果 (支持Oracle验证)
 router.post('/batch/:id/test', 
   ...checkRolePermission('addTest'),
   validateParams(['id']),
-  validateRequest(['testId', 'testerId', 'result']),
+  // 注意：不强制验证testId等字段，因为Oracle模式只需要externalReportId
   batchController.addTestResult
 );
 

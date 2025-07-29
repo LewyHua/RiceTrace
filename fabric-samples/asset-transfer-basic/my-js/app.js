@@ -84,7 +84,7 @@ async function testFarmerFunctions() {
             // 3. 查询新创建的批次
             console.log('\n3. Reading created batch...');
             await apiRequest('GET', `/batch/${newBatchId}`);
-        }
+    }
         
     } catch (error) {
         console.error('Farmer test failed:', error.message);
@@ -128,8 +128,8 @@ async function testProcessorFunctions() {
                 operator: 'Logistics Manager'
             };
             await apiRequest('PUT', `/batch/${batchId}/transfer`, transferData);
-        }
-        
+}
+
     } catch (error) {
         console.error('Processor test failed:', error.message);
     }
@@ -175,7 +175,7 @@ async function main() {
         console.error('❌ API is not available. Please start the server first:');
         console.error('   npm start');
         process.exit(1);
-    }
+}
 
     // 根据角色执行不同的测试
     try {

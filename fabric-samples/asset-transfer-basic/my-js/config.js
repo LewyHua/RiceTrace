@@ -75,6 +75,16 @@ function getPaths(orgConfig) {
   };
 }
 
+// Oracle 服务配置
+const oracleServices = {
+  foodSafety: {
+    baseUrl: process.env.FOOD_SAFETY_API_URL || 'https://api.mock-food-safety.gov/v1',
+    apiKey: process.env.FOOD_SAFETY_API_KEY || 'mock-api-key',
+    timeout: 10000, // 10秒超时
+    retryCount: 3   // 重试次数
+  }
+};
+
 // Supabase 配置（预留，待实现）
 const supabase = {
   url: process.env.SUPABASE_URL || '',
@@ -93,7 +103,9 @@ const errorCodes = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   FABRIC_ERROR: 'FABRIC_ERROR',
   NOT_FOUND: 'NOT_FOUND',
-  INTERNAL_ERROR: 'INTERNAL_ERROR'
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  ORACLE_ERROR: 'ORACLE_ERROR',
+  ORACLE_VERIFICATION_FAILED: 'ORACLE_VERIFICATION_FAILED'
 };
 
 // 验证配置
@@ -141,6 +153,7 @@ module.exports = {
   fabric,
   organizations,
   permissions,
+  oracleServices,
   supabase,
   errorCodes,
   

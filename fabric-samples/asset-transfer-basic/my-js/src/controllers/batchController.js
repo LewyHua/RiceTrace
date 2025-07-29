@@ -188,6 +188,22 @@ const getBatchStats = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * 获取Oracle服务状态
+ */
+const getOracleStatus = asyncHandler(async (req, res) => {
+  const status = await riceService.getOracleStatus();
+  
+  res.json({
+    success: true,
+    data: {
+      ...status,
+      systemTime: new Date().toISOString()
+    },
+    message: 'Oracle服务状态获取成功'
+  });
+});
+
 module.exports = {
   getAllBatches,
   getBatchById,
@@ -196,5 +212,6 @@ module.exports = {
   transferBatch,
   addTestResult,
   addProcessingRecord,
-  getBatchStats
+  getBatchStats,
+  getOracleStatus
 }; 
