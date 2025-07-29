@@ -236,6 +236,52 @@ class ReportService {
   }
 
   /**
+   * 更新报告状态 (管理员功能，用于开发测试)
+   * @param {string} reportId 报告ID
+   * @param {string} status 新状态 (APPROVED, REJECTED, PENDING)
+   * @returns {Promise<Object>} 更新结果
+   */
+  async updateReportStatus(reportId, status) {
+    try {
+      if (!reportId || !status) {
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID和状态不能为空`);
+      }
+
+      console.log(`📝 更新报告状态: ${reportId} -> ${status}`);
+
+      // 更新 Supabase 中的报告状态
+      const { data, error } = await this.supabaseClient
+        .from('quality_reports')
+        .update({ 
+          status: status
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error(`${errorCodes.NOT_FOUND}: 报告不存在: ${reportId}`);
+        }
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库更新失败: ${error.message}`);
+      }
+
+      console.log(`✅ 报告状态更新成功: ${reportId} -> ${status}`);
+
+      return {
+        reportId: data.id,
+        oldStatus: 'unknown', // 我们没有保存旧状态
+        newStatus: data.status,
+        updatedAt: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error(`❌ 更新报告状态失败: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * 获取服务状态
    * @returns {Object} 服务状态
    */

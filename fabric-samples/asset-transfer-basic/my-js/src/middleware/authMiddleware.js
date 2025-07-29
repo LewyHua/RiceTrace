@@ -20,12 +20,13 @@ function extractRole(req, res, next) {
     });
   }
 
-  // 验证角色是否有效
-  if (!getAvailableRoles().includes(role)) {
+  // 验证角色是否有效 (admin角色用于管理功能)
+  const validRoles = [...getAvailableRoles(), 'admin'];
+  if (!validRoles.includes(role)) {
     return res.status(400).json({
       error: errorCodes.ROLE_MISSING,
       message: `无效的角色: ${role}`,
-      availableRoles: getAvailableRoles()
+      availableRoles: validRoles
     });
   }
 

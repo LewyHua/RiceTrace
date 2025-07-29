@@ -102,7 +102,25 @@ function renderDetail(batch) {
     return `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
   }
   function renderTableRows(rows, keys) {
-    return `<tbody>${rows.map(row => `<tr>${keys.map(k => `<td>${row[k] || '-'}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    return `<tbody>${rows.map(row => `<tr>${keys.map(k => {
+      let value = row[k] || '-';
+      // 对于特定字段进行格式化
+      if (k === 'report' && value.length > 30) {
+        // 报告内容过长时截断并显示省略号
+        value = value.substring(0, 30) + '...';
+      } else if (k === 'testId' && value.length > 20) {
+        // 测试ID过长时截断
+        value = value.substring(0, 20) + '...';
+      } else if (k === 'timestamp' && value !== '-') {
+        // 时间格式化
+        try {
+          value = new Date(value).toLocaleString('zh-CN');
+        } catch (e) {
+          // 如果时间格式无效，保持原值
+        }
+      }
+      return `<td style="max-width: 150px; word-wrap: break-word; overflow-wrap: break-word;">${value}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>`;
   }
   
   // 批次详情表格
@@ -123,13 +141,33 @@ function renderDetail(batch) {
   
   // 质检记录表格
   const inspections = batch.testResults || [];
-  const inspectionTable = `
-    <h3 style='margin-top:32px;'>质检记录</h3>
-    ${inspections.length > 0 ? `<table>
-      ${renderTableHeader(['测试ID', '测试员', '温度', '报告', '结果', '时间'])}
-      ${renderTableRows(inspections.slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || '')), ['testId', 'testerId', 'temperature', 'report', 'result', 'timestamp'])}
-    </table>` : '<p>暂无质检记录</p>'}
-  `;
+  let inspectionTable = '';
+  if (inspections.length > 0) {
+    inspectionTable = `<h3 style='margin-top:32px;'>质检记录</h3>`;
+    inspections.slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || '')).forEach((inspection, index) => {
+      const time = inspection.timestamp ? new Date(inspection.timestamp).toLocaleString('zh-CN') : '-';
+      const reportId = inspection.reportId || '-';
+      const reportHash = inspection.reportHash ? inspection.reportHash.substring(0, 16) + '...' : '-';
+      const isVerified = inspection.isVerified ? '✅ 已验证' : '❌ 未验证';
+      
+      inspectionTable += `
+        <div style="border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; background: #f9f9f9;">
+          <table style="width: 100%; border: none;">
+            <tr><td style="border: none; width: 100px;"><strong>测试ID</strong></td><td style="border: none;">${inspection.testId || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>测试员</strong></td><td style="border: none;">${inspection.testerId || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>温度</strong></td><td style="border: none;">${inspection.temperature || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>结果</strong></td><td style="border: none;"><span style="color: ${inspection.result === 'PASSED' ? '#4caf50' : '#f44336'}">${inspection.result || '-'}</span></td></tr>
+            <tr><td style="border: none;"><strong>时间</strong></td><td style="border: none;">${time}</td></tr>
+            <tr><td style="border: none;"><strong>验证状态</strong></td><td style="border: none;">${isVerified}</td></tr>
+            <tr><td style="border: none;"><strong>报告ID</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportId}</td></tr>
+            <tr><td style="border: none;"><strong>文件哈希</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportHash}</td></tr>
+          </table>
+        </div>
+      `;
+    });
+  } else {
+    inspectionTable = `<h3 style='margin-top:32px;'>质检记录</h3><p>暂无质检记录</p>`;
+  }
   
   // 加工记录表格，时间倒序
   const processHistory = (batch.processHistory || []).slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));

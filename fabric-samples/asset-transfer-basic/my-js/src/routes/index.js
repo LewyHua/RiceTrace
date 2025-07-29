@@ -60,6 +60,13 @@ router.get('/reports/:reportId',
   reportController.getReportById
 );
 
+// 管理员更新报告状态 (用于开发测试)
+router.post('/reports/admin/update-status',
+  extractRole,
+  validateRequest(['reportId', 'status']),
+  reportController.updateReportStatus
+);
+
 // 获取所有批次
 router.get('/batch', 
   ...checkRolePermission('getAll'), 

@@ -102,11 +102,35 @@ const getReportById = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * 管理员更新报告状态 (用于开发测试)
+ */
+const updateReportStatus = asyncHandler(async (req, res) => {
+  const { reportId, status } = req.body;
+
+  if (!reportId || !status) {
+    throw new Error('报告ID和状态不能为空');
+  }
+
+  if (!['APPROVED', 'REJECTED', 'PENDING'].includes(status)) {
+    throw new Error('无效的状态值');
+  }
+
+  const result = await reportService.updateReportStatus(reportId, status);
+
+  res.json({
+    success: true,
+    data: result,
+    message: `报告状态已更新为 ${status}`
+  });
+});
+
 module.exports = {
   upload, // Multer中间件
   uploadReport,
   verifyReport,
   getMyReports,
   getReportStatus,
-  getReportById
+  getReportById,
+  updateReportStatus
 }; 
