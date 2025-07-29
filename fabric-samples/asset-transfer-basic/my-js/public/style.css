@@ -160,6 +160,81 @@ table a:hover {
   text-align: center;
 }
 
+/* 表单组样式 */
+.form-group {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: #333;
+}
+
+.form-group small {
+  color: #666;
+  font-size: 12px;
+  display: block;
+  margin-top: 5px;
+}
+
+.form-container {
+  margin: 20px 0;
+}
+
+.section {
+  margin: 30px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* 报告状态样式 */
+.status.approved {
+  background: #e8f5e8;
+  color: #2e7d32;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.status.rejected {
+  background: #ffebee;
+  color: #c62828;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.status.pending {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.navigation {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.navigation a {
+  color: #ff6f00;
+  text-decoration: none;
+  padding: 8px 16px;
+  border: 1px solid #ff6f00;
+  border-radius: 4px;
+}
+
+.navigation a:hover {
+  background: #ff6f00;
+  color: white;
+}
+
 .action-card h3 {
   margin: 0 0 10px 0;
   color: #333;

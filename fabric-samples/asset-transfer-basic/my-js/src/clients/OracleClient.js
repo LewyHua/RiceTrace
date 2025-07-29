@@ -1,4 +1,5 @@
 const { oracleServices, errorCodes } = require('../../config');
+const reportService = require('../services/ReportService');
 
 /**
  * Oracle 客户端
@@ -7,75 +8,58 @@ const { oracleServices, errorCodes } = require('../../config');
 class OracleClient {
 
   /**
-   * 验证食品安全质检报告
-   * @param {string} externalReportId - 外部系统的报告ID
+   * 验证质检报告 (通过内部ReportService)
+   * @param {string} reportId - 报告ID
    * @returns {Promise<Object>} 验证结果
    */
-  async verifyTestReport(externalReportId) {
-    if (!externalReportId || typeof externalReportId !== 'string') {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 外部报告ID不能为空`);
+  async verifyTestReport(reportId) {
+    if (!reportId || typeof reportId !== 'string') {
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID不能为空`);
     }
 
-    const { baseUrl, apiKey, timeout, retryCount } = oracleServices.foodSafety;
-    const url = `${baseUrl}/reports/${externalReportId}`;
+    try {
+      console.log(`🔍 Oracle开始验证报告: ${reportId}`);
 
-    for (let attempt = 1; attempt <= retryCount; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'RiceTrace-Oracle/1.0'
-          },
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: 报告ID ${externalReportId} 不存在`);
-          }
-          if (response.status === 401 || response.status === 403) {
-            throw new Error(`${errorCodes.ORACLE_ERROR}: API认证失败`);
-          }
-          throw new Error(`${errorCodes.ORACLE_ERROR}: API请求失败 (状态码: ${response.status})`);
-        }
-
-        const data = await response.json();
-        
-        // 验证返回数据格式
-        const validatedData = this._validateTestReportData(data);
-        
-        return {
-          success: true,
-          data: validatedData,
-          source: 'NationalFoodSafetyAPI',
-          verifiedAt: new Date().toISOString(),
-          externalReportId
-        };
-
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          console.warn(`Oracle API timeout (attempt ${attempt}/${retryCount}): ${url}`);
-        } else if (error.message.includes(errorCodes.ORACLE_VERIFICATION_FAILED)) {
-          // 验证失败不重试
-          throw error;
-        } else {
-          console.warn(`Oracle API error (attempt ${attempt}/${retryCount}): ${error.message}`);
-        }
-
-        if (attempt === retryCount) {
-          throw new Error(`${errorCodes.ORACLE_ERROR}: 外部API调用失败，已重试${retryCount}次: ${error.message}`);
-        }
-
-        // 等待后重试
-        await this._sleep(1000 * attempt);
+      // 使用内部ReportService验证报告
+      const verificationResult = await reportService.verifyReport(reportId);
+      
+      if (!verificationResult.success) {
+        throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: ${verificationResult.error}`);
       }
+
+      const reportData = verificationResult.data;
+      
+      // 标准化数据格式以兼容原有逻辑
+      const standardizedData = {
+        testId: reportData.reportId,
+        result: 'PASSED', // 能通过验证的报告都视为PASSED
+        tester: reportData.uploadedBy,
+        testDate: reportData.createdAt,
+        laboratory: 'Internal QC System',
+        certificationNumber: reportData.reportId,
+        notes: `文件哈希: ${reportData.fileHash}`,
+        
+        // Oracle特有字段
+        isVerified: true,
+        verificationSource: 'RiceTrace-ReportService',
+        externalReportId: reportData.reportId,
+        fileHash: reportData.fileHash,
+        fileUrl: reportData.fileUrl
+      };
+
+      console.log(`✅ Oracle验证成功: ${reportId}`);
+
+      return {
+        success: true,
+        data: standardizedData,
+        source: 'RiceTrace-ReportService',
+        verifiedAt: new Date().toISOString(),
+        externalReportId: reportId
+      };
+
+    } catch (error) {
+      console.error(`❌ Oracle验证失败: ${error.message}`);
+      throw error;
     }
   }
 

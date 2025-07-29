@@ -1,6 +1,7 @@
 const express = require('express');
 const batchController = require('../controllers/batchController');
 const productController = require('../controllers/productController');
+const reportController = require('../controllers/reportController');
 const { extractRole, checkRolePermission, validateRequest, validateParams, logUserAction } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -24,16 +25,51 @@ router.get('/oracle/status',
   batchController.getOracleStatus
 );
 
+// ===================== 质检报告相关路由 =====================
+
+// 上传质检报告 (所有角色都可以上传)
+router.post('/reports/upload',
+  extractRole, // 提取角色信息
+  reportController.upload.single('report'), // Multer文件上传中间件
+  reportController.uploadReport
+);
+
+// 获取我的报告列表
+router.get('/reports/my',
+  extractRole,
+  reportController.getMyReports
+);
+
+// 获取报告服务状态
+router.get('/reports/status',
+  extractRole,
+  reportController.getReportStatus
+);
+
+// 验证报告 (用于调试)
+router.get('/reports/:reportId/verify',
+  extractRole,
+  validateParams(['reportId']),
+  reportController.verifyReport
+);
+
+// 获取报告详情
+router.get('/reports/:reportId',
+  extractRole,
+  validateParams(['reportId']),
+  reportController.getReportById
+);
+
 // 获取所有批次
 router.get('/batch', 
   ...checkRolePermission('getAll'), 
   batchController.getAllBatches
 );
 
-// 创建批次
+// 创建批次 (需要质检报告)
 router.post('/batch', 
   ...checkRolePermission('create'),
-  validateRequest(['location', 'variety', 'harvestDate', 'initialTestResult', 'owner', 'initialStep', 'operator']),
+  validateRequest(['reportId', 'location', 'variety', 'harvestDate', 'initialTestResult', 'owner', 'initialStep', 'operator']),
   batchController.createBatch
 );
 
@@ -44,11 +80,11 @@ router.get('/batch/:id/exists',
   batchController.checkBatchExists
 );
 
-// 转移批次所有权
+// 转移批次所有权 (需要质检报告)
 router.put('/batch/:id/transfer', 
   ...checkRolePermission('transfer'),
   validateParams(['id']),
-  validateRequest(['newOwner', 'operator']),
+  validateRequest(['reportId', 'newOwner', 'operator']),
   batchController.transferBatch
 );
 

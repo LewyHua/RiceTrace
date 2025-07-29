@@ -196,6 +196,8 @@ async function createBatch(batchData, resultElementId) {
       <div class="success">
         ✅ 批次创建成功！<br>
         批次ID: ${result.data.batchId}<br>
+        报告ID: ${result.data.reportId}<br>
+        报告哈希: ${result.data.reportHash ? result.data.reportHash.substring(0, 16) + '...' : '未知'}<br>
         <a href="detail.html?batchId=${result.data.batchId}">查看详情</a>
       </div>
     `;
@@ -216,7 +218,9 @@ async function transferBatch(batchId, transferData, resultElementId) {
     document.getElementById(resultElementId).innerHTML = `
       <div class="success">
         ✅ ${result.message}<br>
-        新所有者: ${result.newOwner}
+        新所有者: ${result.newOwner}<br>
+        报告ID: ${result.reportId}<br>
+        报告哈希: ${result.reportHash ? result.reportHash.substring(0, 16) + '...' : '未知'}
       </div>
     `;
     

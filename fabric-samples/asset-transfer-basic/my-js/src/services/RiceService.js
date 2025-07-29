@@ -62,22 +62,38 @@ class RiceService {
   }
 
   /**
-   * 创建新的大米批次
+   * 创建新的大米批次 (需要质检报告)
    * @param {string} role - 调用者角色
    * @param {Object} batchData - 批次数据
-   * @returns {Promise<string>} 新创建的批次ID
+   * @param {string} reportId - 质检报告ID
+   * @returns {Promise<Object>} 新创建的批次信息
    */
-  async createBatch(role, batchData) {
+  async createBatch(role, batchData, reportId) {
     // 数据验证
     this._validateBatchData(batchData);
+
+    if (!reportId) {
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: 创建批次需要提供质检报告ID`);
+    }
     
     const { location, variety, harvestDate, initialTestResult, owner, initialStep, operator } = batchData;
     
     try {
+      // 验证质检报告
+      console.log(`🔍 验证创建批次的质检报告: ${reportId}`);
+      const verificationResult = await oracleClient.verifyTestReport(reportId);
+      
+      if (!verificationResult.success) {
+        throw new Error(`质检报告验证失败: ${verificationResult.error}`);
+      }
+
+      const reportData = verificationResult.data;
+      console.log(`✅ 质检报告验证通过: ${reportId}`);
+
       // 生成批次ID
       const batchId = this._generateBatchId();
       
-      // 调用智能合约创建批次
+      // 调用智能合约创建批次，传入报告哈希
       await fabricDAO.submitTransaction(
         role,
         'CreateRiceBatch',
@@ -85,28 +101,43 @@ class RiceService {
         location,
         variety,
         harvestDate,
-        JSON.stringify(initialTestResult),
+        JSON.stringify({
+          ...initialTestResult,
+          reportId: reportId,
+          reportHash: reportData.fileHash,
+          isVerified: true
+        }),
         owner,
         initialStep,
         operator
       );
 
-      return batchId;
+      return {
+        batchId,
+        reportId,
+        reportHash: reportData.fileHash,
+        message: '大米批次创建成功 (已关联质检报告)'
+      };
     } catch (error) {
       throw new Error(`创建批次失败: ${error.message}`);
     }
   }
 
   /**
-   * 转移批次所有权
+   * 转移批次所有权 (需要质检报告)
    * @param {string} role - 调用者角色
    * @param {string} batchId - 批次ID
    * @param {Object} transferData - 转移数据
+   * @param {string} reportId - 质检报告ID
    * @returns {Promise<Object>} 转移结果
    */
-  async transferBatch(role, batchId, transferData) {
+  async transferBatch(role, batchId, transferData, reportId) {
     if (!batchId) {
       throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+    }
+
+    if (!reportId) {
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: 转移批次需要提供质检报告ID`);
     }
 
     const { newOwner, operator } = transferData;
@@ -121,16 +152,35 @@ class RiceService {
         throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
       }
 
-      // 执行转移
-      await fabricDAO.submitTransaction(role, 'TransferRiceBatch', batchId, newOwner, operator);
+      // 验证质检报告
+      console.log(`🔍 验证转移批次的质检报告: ${reportId}`);
+      const verificationResult = await oracleClient.verifyTestReport(reportId);
+      
+      if (!verificationResult.success) {
+        throw new Error(`质检报告验证失败: ${verificationResult.error}`);
+      }
+
+      const reportData = verificationResult.data;
+      console.log(`✅ 质检报告验证通过: ${reportId}`);
+
+      // 执行转移（智能合约只需要基本参数，报告信息记录在中台）
+      await fabricDAO.submitTransaction(
+        role, 
+        'TransferRiceBatch', 
+        batchId, 
+        newOwner, 
+        operator
+      );
       
       // 返回更新后的批次信息
       const updatedBatch = await this.getBatchById(role, batchId);
       
       return {
-        message: `批次所有权已转移至 ${updatedBatch.currentOwner}`,
+        message: `批次所有权已转移至 ${updatedBatch.currentOwner} (已关联质检报告)`,
         newOwner: updatedBatch.currentOwner,
         batchId,
+        reportId,
+        reportHash: reportData.fileHash,
         timestamp: new Date().toISOString()
       };
     } catch (error) {

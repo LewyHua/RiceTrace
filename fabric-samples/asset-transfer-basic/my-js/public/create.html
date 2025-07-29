@@ -11,6 +11,13 @@
 <body>
   <div class="container">
     <h1>创建新批次</h1>
+    
+    <div class="form-group">
+      <label for="reportId">质检报告ID (必填)</label>
+      <input id="reportId" placeholder="从质检报告页面获取" required />
+      <small>请先在"上传质检报告"页面上传并审核通过质检报告</small>
+    </div>
+
     <label for="location">产地 (location)</label>
     <input id="location" placeholder="例如: Heilongjiang" />
 
@@ -36,7 +43,15 @@
   <script src="common.js"></script>
   <script>
     async function createBatchForm() {
+      const reportId = document.getElementById("reportId").value.trim();
+      
+      if (!reportId) {
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写质检报告ID</div>`;
+        return;
+      }
+
       const payload = {
+        reportId: reportId,
         location: document.getElementById("location").value.trim(),
         variety: document.getElementById("variety").value.trim(),
         harvestDate: document.getElementById("harvestDate").value,
@@ -63,6 +78,7 @@
         await createBatch(payload, "createBatchResult");
         
         // 清空表单
+        document.getElementById("reportId").value = '';
         document.getElementById("location").value = '';
         document.getElementById("variety").value = '';
         document.getElementById("harvestDate").value = '';

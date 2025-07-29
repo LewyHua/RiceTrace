@@ -57,10 +57,16 @@ const checkBatchExists = asyncHandler(async (req, res) => {
 });
 
 /**
- * 创建新批次
+ * 创建新批次 (需要质检报告)
  * POST /api/batch
  */
 const createBatch = asyncHandler(async (req, res) => {
+  const { reportId } = req.body;
+  
+  if (!reportId) {
+    throw new Error('创建批次需要提供质检报告ID (reportId)');
+  }
+
   const batchData = {
     location: req.body.location,
     variety: req.body.variety,
@@ -71,13 +77,15 @@ const createBatch = asyncHandler(async (req, res) => {
     operator: req.body.operator
   };
 
-  const batchId = await riceService.createBatch(req.role, batchData);
+  const result = await riceService.createBatch(req.role, batchData, reportId);
   
   res.status(201).json({
     success: true,
-    message: '批次创建成功',
+    message: result.message,
     data: {
-      batchId,
+      batchId: result.batchId,
+      reportId: result.reportId,
+      reportHash: result.reportHash,
       ...batchData
     },
     role: req.role,
@@ -86,17 +94,23 @@ const createBatch = asyncHandler(async (req, res) => {
 });
 
 /**
- * 转移批次所有权
+ * 转移批次所有权 (需要质检报告)
  * PUT /api/batch/:id/transfer
  */
 const transferBatch = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { reportId } = req.body;
+
+  if (!reportId) {
+    throw new Error('转移批次需要提供质检报告ID (reportId)');
+  }
+
   const transferData = {
     newOwner: req.body.newOwner,
     operator: req.body.operator
   };
 
-  const result = await riceService.transferBatch(req.role, id, transferData);
+  const result = await riceService.transferBatch(req.role, id, transferData, reportId);
   
   res.json({
     success: true,

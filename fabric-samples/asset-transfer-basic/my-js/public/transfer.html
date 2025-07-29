@@ -11,6 +11,13 @@
 <body>
   <div class="container">
     <h1>转移批次所有权</h1>
+    
+    <div class="form-group">
+      <label for="reportId">质检报告ID (必填)</label>
+      <input id="reportId" placeholder="从质检报告页面获取" required />
+      <small>转移前请上传并审核通过质检报告</small>
+    </div>
+
     <label for="transferBatchId">批次ID</label>
     <input id="transferBatchId" placeholder="batch1234567890" />
 
@@ -30,16 +37,18 @@
   <script src="common.js"></script>
   <script>
     async function transferBatchForm() {
+      const reportId = document.getElementById("reportId").value.trim();
       const batchId = document.getElementById("transferBatchId").value.trim();
       const newOwner = document.getElementById("newOwner").value.trim();
       const operator = document.getElementById("operator").value.trim();
       
-      if (!batchId || !newOwner || !operator) {
+      if (!reportId || !batchId || !newOwner || !operator) {
         document.getElementById("transferResult").innerHTML = `<div class="error">❌ 请填写所有必填字段</div>`;
         return;
       }
       
       const payload = {
+        reportId: reportId,
         newOwner: newOwner,
         operator: operator
       };
@@ -48,6 +57,7 @@
         await transferBatch(batchId, payload, "transferResult");
         
         // 清空表单
+        document.getElementById("reportId").value = '';
         document.getElementById("transferBatchId").value = '';
         document.getElementById("newOwner").value = '';
         document.getElementById("operator").value = '';

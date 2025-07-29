@@ -1,5 +1,8 @@
 const path = require('node:path');
 
+// 加载环境变量
+require('dotenv').config();
+
 /**
  * 大米供应链追溯系统配置文件
  * 统一管理所有环境配置和组织信息
@@ -85,14 +88,29 @@ const oracleServices = {
   }
 };
 
-// Supabase 配置（预留，待实现）
+// Cloudflare R2 配置 (兼容S3 API)
+const cloudflareR2 = {
+  accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+  accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
+  secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY,
+  bucketName: process.env.CLOUDFLARE_BUCKET_NAME || 'ricetrace',
+  region: 'auto', // R2 uses 'auto' region
+  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`
+};
+
+// Supabase 配置
 const supabase = {
-  url: process.env.SUPABASE_URL || '',
-  anonKey: process.env.SUPABASE_ANON_KEY || '',
-  buckets: {
-    testReports: 'test-reports',
-    documents: 'documents',
-    images: 'images'
+  url: process.env.SUPABASE_URL,
+  anonKey: process.env.SUPABASE_ANON_KEY,
+  // 使用 Transaction pooler 避免免费版连接限制
+  poolingUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace('.supabase.co', '.pooler.supabase.com') : '',
+  options: {
+    auth: {
+      persistSession: false // 对于服务端应用，禁用会话持久化
+    },
+    db: {
+      schema: 'public'
+    }
   }
 };
 
@@ -154,6 +172,7 @@ module.exports = {
   organizations,
   permissions,
   oracleServices,
+  cloudflareR2,
   supabase,
   errorCodes,
   
