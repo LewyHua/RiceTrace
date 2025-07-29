@@ -131,9 +131,20 @@ class ReportService {
         throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库查询失败: ${error.message}`);
       }
 
-      // 检查报告状态
+      // 检查报告状态，提供用户友好的错误信息
       if (data.status !== 'APPROVED') {
-        throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: 报告未通过审核，当前状态: ${data.status}`);
+        let statusMessage = '';
+        switch (data.status) {
+          case 'PENDING':
+            statusMessage = '报告正在等待审核，请耐心等待管理员审批';
+            break;
+          case 'REJECTED':
+            statusMessage = '报告已被拒绝，请重新上传符合要求的质检报告';
+            break;
+          default:
+            statusMessage = `报告状态异常: ${data.status}`;
+        }
+        throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: ${statusMessage} (报告ID: ${reportId})`);
       }
 
       console.log(`✅ 报告验证通过: ${reportId}`);

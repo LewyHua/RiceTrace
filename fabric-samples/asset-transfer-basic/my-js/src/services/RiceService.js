@@ -102,10 +102,18 @@ class RiceService {
         variety,
         harvestDate,
         JSON.stringify({
-          ...initialTestResult,
+          // 完全使用Oracle验证的数据，忽略前端传入的占位数据
+          testId: reportData.testId,
+          testerId: reportData.tester,
+          timestamp: reportData.testDate,
+          temperature: reportData.laboratory || "N/A",
+          report: reportData.notes || "Oracle verified quality report",
+          result: reportData.result,
+          // Oracle验证信息
           reportId: reportId,
           reportHash: reportData.fileHash,
-          isVerified: true
+          isVerified: true,
+          verificationSource: reportData.verificationSource
         }),
         owner,
         initialStep,

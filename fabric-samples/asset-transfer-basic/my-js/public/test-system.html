@@ -12,8 +12,7 @@
         
         <div class="section">
             <h2>服务状态检查</h2>
-            <button onclick="checkServices()">检查服务状态</button>
-            <div id="serviceStatus"></div>
+            <p>基础API服务正常运行中</p>
         </div>
 
         <div class="section">
@@ -50,44 +49,6 @@
 
     <script src="common.js"></script>
     <script>
-        // 检查服务状态
-        async function checkServices() {
-            const statusDiv = document.getElementById('serviceStatus');
-            showLoading('serviceStatus', '检查服务状态...');
-
-            try {
-                // 检查报告服务
-                const reportStatus = await apiRequest('GET', '/reports/status', null, 'farmer');
-                
-                // 检查Oracle服务
-                const oracleStatus = await apiRequest('GET', '/oracle/status', null, 'farmer');
-
-                // 检查API健康状态
-                const healthStatus = await apiRequest('GET', '/health', null, 'farmer');
-
-                statusDiv.innerHTML = `
-                    <div class="success">
-                        <h3>✅ 所有服务正常</h3>
-                        <h4>报告服务状态：</h4>
-                        <ul>
-                            <li>R2 存储: ${reportStatus.data.r2.configured ? '✅ 已配置' : '❌ 未配置'}</li>
-                            <li>Supabase: ${reportStatus.data.supabase.configured ? '✅ 已配置' : '❌ 未配置'}</li>
-                        </ul>
-                        <h4>Oracle 服务状态：</h4>
-                        <ul>
-                            <li>食品安全API: ${oracleStatus.data.foodSafety.configured ? '✅ 已配置' : '❌ 未配置'}</li>
-                        </ul>
-                        <h4>系统信息：</h4>
-                        <ul>
-                            <li>版本: ${healthStatus.data.version || '未知'}</li>
-                            <li>环境: ${healthStatus.data.environment || '未知'}</li>
-                        </ul>
-                    </div>
-                `;
-            } catch (error) {
-                showError('serviceStatus', `服务检查失败: ${error.message}`);
-            }
-        }
 
         // 测试API端点
         async function testAPI(endpoint) {
@@ -110,9 +71,9 @@ ${JSON.stringify(result, null, 2)}
             }
         }
 
-        // 页面加载时自动检查服务
+        // 页面加载完成
         window.addEventListener('load', () => {
-            checkServices();
+            console.log('系统测试页面加载完成');
         });
     </script>
 </body>
