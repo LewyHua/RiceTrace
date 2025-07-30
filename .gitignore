@@ -1,0 +1,11 @@
+#my-ts 的node_modules和dist
+fabric-samples/asset-transfer-basic/my-ts/node_modules
+fabric-samples/asset-transfer-basic/my-ts/dist
+
+#fabric-samples的environment
+fabric-samples/bin
+fabric-samples/builders
+fabric-samples/config
+
+#cursor
+.cursor

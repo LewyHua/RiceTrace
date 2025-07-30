@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报告审核管理 - RiceTrace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>报告审核管理</h1>
+        <p><strong>注意:</strong> 这是开发测试页面，生产环境请使用 Supabase 后台管理</p>
+        
+        <div class="section">
+            <h2>待审核报告列表</h2>
+            <button onclick="loadPendingReports()">刷新列表</button>
+            <div id="pendingReports"></div>
+        </div>
+
+        <div class="section">
+            <h2>快速审核</h2>
+            <div class="form-group">
+                <label for="reportIdInput">报告ID</label>
+                <input type="text" id="reportIdInput" placeholder="输入报告ID">
+            </div>
+            <div style="margin: 10px 0;">
+                <button onclick="approveReport()" style="background: #4caf50;">✅ 批准</button>
+                <button onclick="rejectReport()" style="background: #f44336;">❌ 拒绝</button>
+            </div>
+            <div id="quickApprovalResult"></div>
+        </div>
+
+        <div class="navigation">
+            <a href="index.html">返回首页</a>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 加载待审核报告
+        async function loadPendingReports() {
+            const listDiv = document.getElementById('pendingReports');
+            showLoading('pendingReports', '加载待审核报告...');
+
+            try {
+                // 获取所有角色的报告
+                const roles = ['farmer', 'processor', 'consumer'];
+                let allReports = [];
+
+                for (const role of roles) {
+                    try {
+                        const response = await fetch(`${baseURL}/reports/my`, {
+                            headers: { 'X-User-Role': role }
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            allReports = allReports.concat(result.data.map(report => ({...report, role})));
+                        }
+                    } catch (error) {
+                        console.warn(`获取${role}报告失败:`, error.message);
+                    }
+                }
+
+                // 筛选待审核报告
+                const pendingReports = allReports.filter(report => 
+                    report.status === 'PENDING' || report.status === 'REJECTED'
+                );
+
+                if (pendingReports.length === 0) {
+                    listDiv.innerHTML = '<p>暂无待审核报告</p>';
+                    return;
+                }
+
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>报告ID</th>
+                                <th>文件名</th>
+                                <th>上传者</th>
+                                <th>状态</th>
+                                <th>上传时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                pendingReports.forEach(report => {
+                    const createTime = new Date(report.created_at).toLocaleString('zh-CN');
+                    const statusClass = report.status === 'PENDING' ? 'pending' : 'rejected';
+                    
+                    html += `
+                        <tr>
+                            <td style="font-family: monospace; font-size: 11px;">${report.id}</td>
+                            <td>${report.file_name}</td>
+                            <td>${report.uploaded_by}</td>
+                            <td><span class="status ${statusClass}">${report.status}</span></td>
+                            <td>${createTime}</td>
+                            <td>
+                                <button onclick="updateReportStatus('${report.id}', 'APPROVED')" 
+                                        style="background: #4caf50; color: white; border: none; padding: 4px 8px; margin: 2px;">
+                                    批准
+                                </button>
+                                <button onclick="updateReportStatus('${report.id}', 'REJECTED')" 
+                                        style="background: #f44336; color: white; border: none; padding: 4px 8px; margin: 2px;">
+                                    拒绝
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                listDiv.innerHTML = html;
+
+            } catch (error) {
+                showError('pendingReports', `加载失败: ${error.message}`);
+            }
+        }
+
+        // 更新报告状态
+        async function updateReportStatus(reportId, newStatus) {
+            try {
+                showLoading('pendingReports', `正在${newStatus === 'APPROVED' ? '批准' : '拒绝'}报告...`);
+
+                // 这里使用直接的数据库操作（简化版）
+                // 实际生产环境应该通过专门的管理API
+                const response = await fetch(`${baseURL}/reports/admin/update-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Role': 'admin'
+                    },
+                    body: JSON.stringify({
+                        reportId: reportId,
+                        status: newStatus
+                    })
+                });
+
+                if (response.ok) {
+                    alert(`报告${newStatus === 'APPROVED' ? '批准' : '拒绝'}成功！`);
+                    loadPendingReports(); // 重新加载列表
+                } else {
+                    throw new Error('操作失败，请使用 Supabase 后台手动更新');
+                }
+
+            } catch (error) {
+                // 如果API不存在，提供手动操作指导
+                const action = newStatus === 'APPROVED' ? '批准' : '拒绝';
+                alert(`API操作失败，请在 Supabase 后台手动${action}报告。\\n\\n操作步骤：\\n1. 登录 Supabase 控制台\\n2. 进入 quality_reports 表\\n3. 找到 id = ${reportId} 的记录\\n4. 将 status 字段改为 ${newStatus}\\n5. 点击保存`);
+                
+                // 仍然刷新列表，用户可能已经在后台操作了
+                setTimeout(() => loadPendingReports(), 2000);
+            }
+        }
+
+        // 快速批准
+        async function approveReport() {
+            const reportId = document.getElementById('reportIdInput').value.trim();
+            if (!reportId) {
+                alert('请输入报告ID');
+                return;
+            }
+            await updateReportStatus(reportId, 'APPROVED');
+            document.getElementById('reportIdInput').value = '';
+        }
+
+        // 快速拒绝
+        async function rejectReport() {
+            const reportId = document.getElementById('reportIdInput').value.trim();
+            if (!reportId) {
+                alert('请输入报告ID');
+                return;
+            }
+            await updateReportStatus(reportId, 'REJECTED');
+            document.getElementById('reportIdInput').value = '';
+        }
+
+        // 页面加载时自动加载报告列表
+        window.addEventListener('load', () => {
+            loadPendingReports();
+        });
+    </script>
+</body>
+</html> 

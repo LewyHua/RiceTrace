@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传质检报告 - RiceTrace</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>上传质检报告</h1>
+        
+        <div class="form-container">
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="userRole">当前角色</label>
+                    <select id="userRole" required>
+                        <option value="farmer">农户</option>
+                        <option value="processor">加工商</option>
+                        <option value="consumer">消费者</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reportFile">选择质检报告文件</label>
+                    <input type="file" id="reportFile" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <small>支持格式：PDF、JPG、PNG，最大5MB</small>
+                </div>
+
+                <button type="submit">上传报告</button>
+            </form>
+
+            <div id="uploadResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>我的报告列表</h2>
+            <button onclick="loadMyReports()">刷新列表</button>
+            <div id="reportsList"></div>
+        </div>
+
+        <div class="navigation">
+            <a href="index.html">返回首页</a>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 上传表单处理
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('reportFile');
+            const roleSelect = document.getElementById('userRole');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                showError('uploadResult', '请选择要上传的文件');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const role = roleSelect.value;
+
+            // 验证文件大小
+            if (file.size > 5 * 1024 * 1024) {
+                showError('uploadResult', '文件大小不能超过5MB');
+                return;
+            }
+
+            showLoading('uploadResult', '正在上传报告...');
+
+            try {
+                const formData = new FormData();
+                formData.append('report', file);
+
+                const response = await fetch(`${baseURL}/reports/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'X-User-Role': role
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ 报告上传成功</h3>
+                            <p><strong>报告ID:</strong> ${result.data.reportId}</p>
+                            <p><strong>文件哈希:</strong> ${result.data.fileHash.substring(0, 16)}...</p>
+                            <p><strong>状态:</strong> ${result.data.status}</p>
+                            <p><strong>提示:</strong> 报告需要审核通过后才能使用</p>
+                        </div>
+                    `;
+                    
+                    // 清空表单
+                    document.getElementById('uploadForm').reset();
+                    
+                    // 刷新报告列表
+                    setTimeout(() => loadMyReports(), 1000);
+                } else {
+                    showError('uploadResult', result.message || '上传失败');
+                }
+            } catch (error) {
+                showError('uploadResult', `上传失败: ${error.message}`);
+            }
+        });
+
+        // 加载我的报告列表
+        async function loadMyReports() {
+            const role = document.getElementById('userRole').value;
+            const listDiv = document.getElementById('reportsList');
+            
+            showLoading('reportsList', '加载报告列表...');
+
+            try {
+                const response = await fetch(`${baseURL}/reports/my`, {
+                    headers: {
+                        'X-User-Role': role
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data.length === 0) {
+                        listDiv.innerHTML = '<p>暂无报告</p>';
+                        return;
+                    }
+
+                    let html = '<table><thead><tr><th>文件名</th><th>状态</th><th>上传时间</th><th>报告ID</th></tr></thead><tbody>';
+                    
+                    result.data.forEach(report => {
+                        const statusClass = report.status === 'APPROVED' ? 'approved' : 
+                                          report.status === 'REJECTED' ? 'rejected' : 'pending';
+                        const createTime = new Date(report.created_at).toLocaleString('zh-CN');
+                        
+                        html += `
+                            <tr>
+                                <td>${report.file_name}</td>
+                                <td><span class="status ${statusClass}">${report.status}</span></td>
+                                <td>${createTime}</td>
+                                <td style="font-family: monospace; font-size: 12px;">${report.id}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table>';
+                    listDiv.innerHTML = html;
+                } else {
+                    showError('reportsList', result.message || '加载失败');
+                }
+            } catch (error) {
+                showError('reportsList', `加载失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时加载报告列表
+        window.addEventListener('load', () => {
+            loadMyReports();
+        });
+    </script>
+</body>
+</html> 

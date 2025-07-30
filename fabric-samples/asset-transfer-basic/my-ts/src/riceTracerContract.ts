@@ -121,7 +121,8 @@ export class RiceTracerContract extends Contract {
                         timestamp: now,
                         temperature: '20C',
                         report: 'Report1',
-                        result: 'Passed'
+                        result: 'Passed',
+                        isVerified: false
                     }
                 ],
                 ownerHistory: [
@@ -154,7 +155,8 @@ export class RiceTracerContract extends Contract {
                         timestamp: now,
                         temperature: '22C',
                         report: 'Report2',
-                        result: 'Passed'
+                        result: 'Passed',
+                        isVerified: false
                     }
                 ],
                 ownerHistory: [

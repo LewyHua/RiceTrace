@@ -8,10 +8,32 @@
 <body>
   <div class="container">
     <h1>农户操作</h1>
-    <ul>
-      <li><a href="create.html">新建批次</a></li>
-      <!-- <li><a href="my-batches.html">查看我的批次</a></li> -->
-    </ul>
+            <div class="action-grid">
+            <div class="action-card">
+                <h3>上传质检报告</h3>
+                <p>上传质检报告文件</p>
+                <a href="upload-report.html" class="btn">上传报告</a>
+            </div>
+            <div class="action-card">
+                <h3>创建批次</h3>
+                <p>创建新的大米批次记录</p>
+                <a href="create.html" class="btn">新建批次</a>
+            </div>
+            <div class="action-card">
+                <h3>查看批次</h3>
+                <p>查看所有批次列表</p>
+                <button class="btn" onclick="loadFarmerBatches()">查看批次</button>
+            </div>
+        </div>
+    
+    <div id="batchTableContainer"></div>
+    
+    <script src="common.js"></script>
+    <script>
+      async function loadFarmerBatches() {
+        await getAllBatches('farmer');
+      }
+    </script>
     <a href="index.html" class="card-back-link">返回身份选择</a>
   </div>
 </body>

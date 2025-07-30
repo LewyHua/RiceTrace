@@ -11,14 +11,24 @@
 <body>
   <div class="container">
     <h1>转移批次所有权</h1>
+    
+    <div class="form-group">
+      <label for="reportId">质检报告ID (必填)</label>
+      <input id="reportId" placeholder="从质检报告页面获取" required />
+      <small>转移前请上传并审核通过质检报告</small>
+    </div>
+
     <label for="transferBatchId">批次ID</label>
     <input id="transferBatchId" placeholder="batch1234567890" />
 
     <label for="newOwner">新所有者</label>
     <input id="newOwner" placeholder="Processor A" />
 
+    <label for="operator">操作员</label>
+    <input id="operator" placeholder="操作员姓名" />
+
     <div style="display: flex; justify-content: center; margin: 16px 0;">
-      <button onclick="transferBatch()">转移所有权</button>
+      <button onclick="transferBatchForm()">转移所有权</button>
     </div>
     <pre class="json-box" id="transferResult"></pre>
     <a href="index.html" class="card-back-link">返回批次列表</a>
@@ -26,38 +36,35 @@
 
   <script src="common.js"></script>
   <script>
-    async function transferBatch() {
+    async function transferBatchForm() {
+      const reportId = document.getElementById("reportId").value.trim();
       const batchId = document.getElementById("transferBatchId").value.trim();
       const newOwner = document.getElementById("newOwner").value.trim();
-      const resultBox = document.getElementById("transferResult");
-      resultBox.className = "json-box";
-      if (!batchId || !newOwner) {
-        resultBox.textContent = "请填写批次ID和新所有者。";
-        resultBox.classList.add("result-error");
+      const operator = document.getElementById("operator").value.trim();
+      
+      if (!reportId || !batchId || !newOwner || !operator) {
+        document.getElementById("transferResult").innerHTML = `<div class="error">❌ 请填写所有必填字段</div>`;
         return;
       }
+      
       const payload = {
+        reportId: reportId,
         newOwner: newOwner,
-        operator: "Processor A"  // 可根据实际改成动态的
+        operator: operator
       };
+      
       try {
-        const res = await fetch(`${baseURL}/batch/${batchId}/transfer`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "X-User-Role": "processor" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          resultBox.textContent = "错误: " + errText;
-          resultBox.className = "result-error";
-          return;
-        }
-        const data = await res.json();
-        resultBox.textContent = "转移成功！\n新所有者: " + newOwner + (data.batchId ? "\n批次ID: " + data.batchId : "");
-        resultBox.className = "result-success";
+        await transferBatch(batchId, payload, "transferResult");
+        
+        // 清空表单
+        document.getElementById("reportId").value = '';
+        document.getElementById("transferBatchId").value = '';
+        document.getElementById("newOwner").value = '';
+        document.getElementById("operator").value = '';
+        
       } catch (err) {
-        resultBox.textContent = "错误: " + err.message;
-        resultBox.className = "result-error";
+        // 错误已经在 transferBatch 函数中处理了
+        console.error('Failed to transfer batch:', err);
       }
     }
   </script>

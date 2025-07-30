@@ -80,6 +80,31 @@ export class TestResult {
 
     @Property()
     public result: string = '';
+
+    // Oracle 验证相关字段
+    @Property()
+    public isVerified: boolean = false;
+
+    @Property()
+    public verificationSource?: string;
+
+    @Property()
+    public externalReportId?: string;
+
+    @Property()
+    public tester?: string;
+
+    @Property()
+    public testDate?: string;
+
+    @Property()
+    public laboratory?: string;
+
+    @Property()
+    public certificationNumber?: string;
+
+    @Property()
+    public notes?: string;
 }
 
 /**

@@ -11,6 +11,13 @@
 <body>
   <div class="container">
     <h1>创建新批次</h1>
+    
+    <div class="form-group">
+      <label for="reportId">质检报告ID (必填)</label>
+      <input id="reportId" placeholder="从质检报告页面获取" required />
+      <small>请先在"上传质检报告"页面上传并审核通过质检报告</small>
+    </div>
+
     <label for="location">产地 (location)</label>
     <input id="location" placeholder="例如: Heilongjiang" />
 
@@ -20,14 +27,11 @@
     <label for="harvestDate">收获日期 (harvestDate)</label>
     <input id="harvestDate" type="date" placeholder="YYYY-MM-DD" />
 
-    <label for="result">质检结果 (result)</label>
-    <input id="result" placeholder="Passed / Failed" />
-
     <label for="owner">所有者 (owner)</label>
     <input id="owner" placeholder="Farmer Zhang" />
 
     <div style="display: flex; justify-content: center; margin: 16px 0;">
-      <button onclick="createBatch()">创建批次</button>
+      <button onclick="createBatchForm()">创建批次</button>
     </div>
     <pre class="json-box" id="createBatchResult"></pre>
     <a href="index.html" class="card-back-link">返回批次列表</a>
@@ -35,18 +39,26 @@
 
   <script src="common.js"></script>
   <script>
-    async function createBatch() {
+    async function createBatchForm() {
+      const reportId = document.getElementById("reportId").value.trim();
+      
+      if (!reportId) {
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写质检报告ID</div>`;
+        return;
+      }
+
       const payload = {
+        reportId: reportId,
         location: document.getElementById("location").value.trim(),
         variety: document.getElementById("variety").value.trim(),
         harvestDate: document.getElementById("harvestDate").value,
         initialTestResult: {
-          testId: `test${Date.now()}`,
-          testerId: "testerA",
+          // Oracle会自动填充这些信息，这里只提供占位数据
+          testId: "oracle_verified",
+          testerId: "Oracle_System",
           timestamp: new Date().toISOString(),
-          temperature: "20C",
-          report: "Initial test passed",
-          result: document.getElementById("result").value.trim()
+          temperature: "N/A",
+          report: "Oracle verified quality report"
         },
         owner: document.getElementById("owner").value.trim(),
         initialStep: "Harvested",
@@ -54,25 +66,24 @@
       };
 
       // 简单校验
-      if (!payload.location || !payload.variety || !payload.harvestDate || !payload.owner || !payload.initialTestResult.result) {
-        document.getElementById("createBatchResult").textContent = "请填写所有必填字段。";
+      if (!payload.location || !payload.variety || !payload.harvestDate || !payload.owner) {
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写所有必填字段</div>`;
         return;
       }
 
       try {
-        const res = await fetch(`${baseURL}/batch`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-User-Role": "farmer" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText);
-        }
-        const data = await res.json();
-        document.getElementById("createBatchResult").textContent = "创建成功:\n" + JSON.stringify(data, null, 2);
+        await createBatch(payload, "createBatchResult");
+        
+        // 清空表单
+        document.getElementById("reportId").value = '';
+        document.getElementById("location").value = '';
+        document.getElementById("variety").value = '';
+        document.getElementById("harvestDate").value = '';
+        document.getElementById("owner").value = '';
+        
       } catch (err) {
-        document.getElementById("createBatchResult").textContent = "错误: " + err.message;
+        // 错误已经在 createBatch 函数中处理了
+        console.error('Failed to create batch:', err);
       }
     }
   </script>
