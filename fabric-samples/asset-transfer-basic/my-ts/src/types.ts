@@ -59,7 +59,71 @@ export class ProcessingRecord {
 }
 
 /**
- * 质检信息结构
+ * 通用报告结构 - 用于记录各环节的证明材料
+ */
+@Object()
+export class ReportDetail {
+    @Property()
+    public reportId: string = '';
+
+    @Property()
+    public reportType: string = ''; // 报告类型：HarvestLog, ShippingManifest, QualityTest, ProcessingRecord 等
+
+    @Property()
+    public reportHash: string = ''; // 链下文件的哈希值
+
+    @Property()
+    public summary: string = ''; // 关键信息摘要
+
+    // 以下为可选的扩展字段，保持灵活性
+    @Property()
+    public temperature?: string;
+
+    @Property()
+    public result?: string;
+
+    @Property()
+    public isVerified?: boolean;
+
+    @Property()
+    public verificationSource?: string;
+
+    @Property()
+    public tester?: string;
+
+    @Property()
+    public laboratory?: string;
+
+    @Property()
+    public certificationNumber?: string;
+
+    @Property()
+    public notes?: string;
+}
+
+/**
+ * 历史事件记录 - 统一记录所有权转移和处理过程
+ */
+@Object()
+export class HistoryEvent {
+    @Property()
+    public timestamp: string = ''; // ISO8601格式
+
+    @Property()
+    public from: string = ''; // 转移来源方
+
+    @Property()
+    public to: string = ''; // 转移接收方
+
+    @Property()
+    public step: string = ''; // 当前环节：Harvested, Transporting, QualityInspection, Processing, Packaged 等
+
+    @Property('report', 'ReportDetail')
+    public report: ReportDetail = new ReportDetail();
+}
+
+/**
+ * 质检信息结构 - 保留用于向后兼容
  */
 @Object()
 export class TestResult {
@@ -105,10 +169,16 @@ export class TestResult {
 
     @Property()
     public notes?: string;
+
+    @Property()
+    public reportHash?: string;
+
+    @Property()
+    public reportId?: string;
 }
 
 /**
- * 水稻批次结构
+ * 水稻批次结构 - 新版本统一事件溯源模型
  */
 @Object()
 export class RiceBatch {
@@ -127,6 +197,16 @@ export class RiceBatch {
     @Property()
     public harvestDate: string = '';
 
+    @Property()
+    public currentOwner: string = ''; // 当前所有者
+
+    @Property()
+    public currentState: string = ''; // 当前状态/环节
+
+    @Property('history', 'HistoryEvent[]')
+    public history: HistoryEvent[] = []; // 统一的历史事件记录
+
+    // 以下字段保留用于向后兼容，但不再主要使用
     @Property('testResults', 'TestResult[]')
     public testResults: TestResult[] = [];
 
@@ -135,9 +215,6 @@ export class RiceBatch {
 
     @Property('processHistory', 'ProcessingRecord[]')
     public processHistory: ProcessingRecord[] = [];
-
-    @Property()
-    public currentOwner: string = '';
 
     @Property()
     public processingStep: string = '';

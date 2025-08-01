@@ -5,7 +5,7 @@
 import { Context, Contract, Info, Returns, Transaction } from 'fabric-contract-api';
 import stringify from 'json-stringify-deterministic';
 import sortKeysRecursive from 'sort-keys-recursive';
-import { RiceBatch, Product, ProductWithBatch, TestResult, OwnerTransfer, ProcessingRecord, OrganizationType, OrganizationInfo } from './types';
+import { RiceBatch, Product, ProductWithBatch, TestResult, OwnerTransfer, ProcessingRecord, OrganizationType, OrganizationInfo, HistoryEvent, ReportDetail } from './types';
 
 @Info({ title: 'RiceTracerContract', description: 'Smart contract for rice traceability system' })
 export class RiceTracerContract extends Contract {
@@ -76,11 +76,14 @@ export class RiceTracerContract extends Contract {
                 "AddTestResult": ["中间商/测试机构"],
                 "TransferRiceBatch": ["农场", "中间商/测试机构"],
                 "AddProcessingRecord": ["农场", "中间商/测试机构"],
+                "CompleteStepAndTransfer": ["农场", "中间商/测试机构"],
                 "CreateProduct": ["中间商/测试机构"],
                 "ReadProduct": ["所有机构"],
                 "ReadRiceBatch": ["所有机构"],
                 "RiceBatchExists": ["所有机构"],
                 "GetAllRiceBatches": ["所有机构"],
+                "GetBatchHistory": ["所有机构"],
+                "GetBatchCurrentStatus": ["所有机构"],
                 "GetCallerInfo": ["所有机构"],
                 "GetPermissionMatrix": ["所有机构"]
             },
@@ -114,6 +117,26 @@ export class RiceTracerContract extends Contract {
                 origin: 'Heilongjiang',
                 variety: 'Japonica',
                 harvestDate: '2024-09-15',
+                currentOwner: 'Farmer Zhang',
+                currentState: 'Harvested',
+                history: [
+                    {
+                        timestamp: now,
+                        from: '',
+                        to: 'Farmer Zhang',
+                        step: 'Harvested',
+                        report: {
+                            reportId: 't1',
+                            reportType: 'HarvestLog',
+                            reportHash: '',
+                            summary: '收割完成 - 质量良好',
+                            temperature: '20C',
+                            result: 'Passed',
+                            isVerified: false
+                        }
+                    }
+                ],
+                // 向后兼容字段
                 testResults: [
                     {
                         testId: 't1',
@@ -139,7 +162,6 @@ export class RiceTracerContract extends Contract {
                         operator: 'Farmer Zhang'
                     }
                 ],
-                currentOwner: 'Farmer Zhang',
                 processingStep: 'Harvested'
             },
             {
@@ -148,6 +170,26 @@ export class RiceTracerContract extends Contract {
                 origin: 'Sichuan',
                 variety: 'Indica',
                 harvestDate: '2024-09-20',
+                currentOwner: 'Farmer Li',
+                currentState: 'Stored',
+                history: [
+                    {
+                        timestamp: now,
+                        from: '',
+                        to: 'Farmer Li',
+                        step: 'Stored',
+                        report: {
+                            reportId: 't2',
+                            reportType: 'StorageLog',
+                            reportHash: '',
+                            summary: '存储完成 - 温湿度适宜',
+                            temperature: '22C',
+                            result: 'Passed',
+                            isVerified: false
+                        }
+                    }
+                ],
+                // 向后兼容字段
                 testResults: [
                     {
                         testId: 't2',
@@ -173,7 +215,6 @@ export class RiceTracerContract extends Contract {
                         operator: 'Farmer Li'
                     }
                 ],
-                currentOwner: 'Farmer Li',
                 processingStep: 'Stored'
             }
         ];
@@ -241,12 +282,41 @@ export class RiceTracerContract extends Contract {
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
 
+        // 创建初始报告详情 - 基于原有的测试结果
+        const initialReport: ReportDetail = {
+            reportId: initialTestResult.testId || initialTestResult.reportId || '',
+            reportType: 'HarvestLog',
+            reportHash: initialTestResult.reportHash || '',
+            summary: `初始收割完成 - ${initialStep}`,
+            temperature: initialTestResult.temperature,
+            result: initialTestResult.result,
+            isVerified: initialTestResult.isVerified,
+            verificationSource: initialTestResult.verificationSource,
+            tester: initialTestResult.tester || initialTestResult.testerId,
+            laboratory: initialTestResult.laboratory,
+            certificationNumber: initialTestResult.certificationNumber,
+            notes: initialTestResult.notes
+        };
+
+        // 创建初始历史事件
+        const initialHistoryEvent: HistoryEvent = {
+            timestamp: now,
+            from: '',
+            to: owner,
+            step: initialStep,
+            report: initialReport
+        };
+
         const batch: RiceBatch = {
             docType: 'riceBatch',
             batchId,
             origin,
             variety,
             harvestDate,
+            currentOwner: owner,
+            currentState: initialStep,
+            history: [initialHistoryEvent],
+            // 保留向后兼容字段
             testResults: [initialTestResult],
             ownerHistory: [
                 {
@@ -262,7 +332,6 @@ export class RiceTracerContract extends Contract {
                     operator
                 }
             ],
-            currentOwner: owner,
             processingStep: initialStep
         };
 
@@ -357,6 +426,107 @@ export class RiceTracerContract extends Contract {
             `batch_${batchId}`,
             Buffer.from(stringify(sortKeysRecursive(batch)))
         );
+    }
+
+    /**
+     * 完成步骤并转移 - 新的统一事务方法
+     * 将处理过程记录和所有权转移合并为一个原子操作
+     * 权限：农场和中间商/测试机构可以调用
+     */
+    @Transaction()
+    public async CompleteStepAndTransfer(
+        ctx: Context,
+        batchId: string,
+        fromOperator: string,
+        toOperator: string,
+        step: string,
+        reportStr: string // JSON字符串格式的ReportDetail
+    ): Promise<void> {
+        // 检查权限：农场和中间商都可以调用
+        this.checkPermission(ctx, [OrganizationType.FARM, OrganizationType.MIDDLEMAN_TESTER]);
+
+        const batch = await this.ReadRiceBatch(ctx, batchId);
+
+        // 获取交易时间戳
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const now = new Date(txTimestamp.seconds.toNumber() * 1000).toISOString();
+
+        // 解析报告详情
+        let report: ReportDetail;
+        try {
+            report = JSON.parse(reportStr);
+        } catch (error) {
+            throw new Error(`报告格式错误：${error}`);
+        }
+
+        // 创建新的历史事件
+        const historyEvent: HistoryEvent = {
+            timestamp: now,
+            from: fromOperator,
+            to: toOperator,
+            step: step,
+            report: report
+        };
+
+        // 将事件添加到历史记录
+        batch.history.push(historyEvent);
+
+        // 更新批次状态
+        batch.currentOwner = toOperator;
+        batch.currentState = step;
+
+        // 为了向后兼容，同时更新旧的字段
+        batch.ownerHistory.push({
+            from: fromOperator,
+            to: toOperator,
+            timestamp: now
+        });
+
+        batch.processHistory.push({
+            step: step,
+            timestamp: now,
+            operator: toOperator
+        });
+        batch.processingStep = step;
+
+        await ctx.stub.putState(
+            `batch_${batchId}`,
+            Buffer.from(stringify(sortKeysRecursive(batch)))
+        );
+    }
+
+    /**
+     * 获取批次的完整历史事件记录
+     * 权限：所有机构都可以查询
+     */
+    @Transaction(false)
+    @Returns('HistoryEvent[]')
+    public async GetBatchHistory(ctx: Context, batchId: string): Promise<HistoryEvent[]> {
+        const batch = await this.ReadRiceBatch(ctx, batchId);
+        return batch.history;
+    }
+
+    /**
+     * 获取批次的当前状态摘要
+     * 权限：所有机构都可以查询
+     */
+    @Transaction(false)
+    @Returns('string')
+    public async GetBatchCurrentStatus(ctx: Context, batchId: string): Promise<string> {
+        const batch = await this.ReadRiceBatch(ctx, batchId);
+        
+        const statusInfo = {
+            batchId: batch.batchId,
+            currentOwner: batch.currentOwner,
+            currentState: batch.currentState,
+            variety: batch.variety,
+            origin: batch.origin,
+            harvestDate: batch.harvestDate,
+            totalEvents: batch.history.length,
+            lastUpdate: batch.history.length > 0 ? batch.history[batch.history.length - 1].timestamp : ''
+        };
+        
+        return JSON.stringify(statusInfo, null, 2);
     }
 
     /**
