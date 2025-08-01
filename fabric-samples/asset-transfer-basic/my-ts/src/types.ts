@@ -28,38 +28,10 @@ export class OrganizationInfo {
     public orgName: string = '';
 }
 
-/**
- * 所有权转移记录
- */
-@Object()
-export class OwnerTransfer {
-    @Property()
-    public from: string = '';
 
-    @Property()
-    public to: string = '';
-
-    @Property()
-    public timestamp: string = ''; // ISO8601格式
-}
 
 /**
- * 加工流程记录
- */
-@Object()
-export class ProcessingRecord {
-    @Property()
-    public step: string = '';
-
-    @Property()
-    public timestamp: string = ''; // ISO8601格式
-
-    @Property()
-    public operator: string = ''; // 操作人或机构
-}
-
-/**
- * 通用报告结构 - 用于记录各环节的证明材料
+ * Generic report structure for recording evidence of each process step
  */
 @Object()
 export class ReportDetail {
@@ -67,35 +39,22 @@ export class ReportDetail {
     public reportId: string = '';
 
     @Property()
-    public reportType: string = ''; // 报告类型：HarvestLog, ShippingManifest, QualityTest, ProcessingRecord 等
+    public reportType: string = ''; // Report type: HarvestLog, ShippingManifest, QualityTest, ProcessingRecord, etc.
 
     @Property()
-    public reportHash: string = ''; // 链下文件的哈希值
+    public reportHash: string = ''; // Hash of the off-chain file
 
     @Property()
-    public summary: string = ''; // 关键信息摘要
-
-    // 以下为可选的扩展字段，保持灵活性
-    @Property()
-    public temperature?: string;
+    public summary: string = ''; // Key information summary
 
     @Property()
-    public result?: string;
-
-    @Property()
-    public isVerified?: boolean;
+    public isVerified: boolean = false;
 
     @Property()
     public verificationSource?: string;
 
     @Property()
-    public tester?: string;
-
-    @Property()
-    public laboratory?: string;
-
-    @Property()
-    public certificationNumber?: string;
+    public verificationTimestamp?: string;
 
     @Property()
     public notes?: string;
@@ -178,12 +137,12 @@ export class TestResult {
 }
 
 /**
- * 水稻批次结构 - 新版本统一事件溯源模型
+ * Rice batch structure - unified event sourcing model
  */
 @Object()
 export class RiceBatch {
     @Property()
-    public docType: string = 'riceBatch'; // 固定值 "riceBatch"
+    public docType: string = 'riceBatch';
 
     @Property()
     public batchId: string = '';
@@ -198,26 +157,13 @@ export class RiceBatch {
     public harvestDate: string = '';
 
     @Property()
-    public currentOwner: string = ''; // 当前所有者
+    public currentOwner: string = '';
 
     @Property()
-    public currentState: string = ''; // 当前状态/环节
+    public currentState: string = '';
 
     @Property('history', 'HistoryEvent[]')
-    public history: HistoryEvent[] = []; // 统一的历史事件记录
-
-    // 以下字段保留用于向后兼容，但不再主要使用
-    @Property('testResults', 'TestResult[]')
-    public testResults: TestResult[] = [];
-
-    @Property('ownerHistory', 'OwnerTransfer[]')
-    public ownerHistory: OwnerTransfer[] = [];
-
-    @Property('processHistory', 'ProcessingRecord[]')
-    public processHistory: ProcessingRecord[] = [];
-
-    @Property()
-    public processingStep: string = '';
+    public history: HistoryEvent[] = [];
 }
 
 /**

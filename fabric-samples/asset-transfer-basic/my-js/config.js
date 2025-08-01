@@ -57,11 +57,12 @@ const organizations = {
   }
 };
 
-// 角色权限配置
+// Role permission configuration
 const permissions = {
   farmer: ['getAll', 'create', 'getById'],
-  processor: ['transfer', 'addTest', 'addProcess', 'createProduct', 'getById'],
-  consumer: ['getById', 'getProduct', 'getAll']
+  processor: ['getAll', 'transfer', 'addTest', 'addProcess', 'createProduct', 'getById'],
+  consumer: ['getAll', 'getById', 'getProduct'],
+  admin: ['getAll', 'create', 'getById', 'transfer', 'addTest', 'addProcess', 'createProduct', 'getProduct']
 };
 
 // 路径配置工厂函数

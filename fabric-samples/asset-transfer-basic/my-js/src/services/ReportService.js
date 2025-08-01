@@ -282,8 +282,63 @@ class ReportService {
   }
 
   /**
-   * 获取服务状态
-   * @returns {Object} 服务状态
+   * Verify report and fetch as ReportDetail format for blockchain
+   * @param {string} reportId - Report ID
+   * @returns {Promise<Object>} ReportDetail formatted object
+   */
+  async verifyAndFetchReportDetail(reportId) {
+    try {
+      // Use existing verify method to get verified report
+      const verifyResult = await this.verifyReport(reportId);
+      const reportData = verifyResult.data;
+
+      // Convert to ReportDetail format for smart contract
+      const reportDetail = {
+        reportId: reportData.reportId,
+        reportType: this._determineReportType(reportData.fileName, reportData.contentType),
+        reportHash: reportData.fileHash,
+        summary: `Report ${reportData.fileName} - Verified by Oracle`,
+        isVerified: true,
+        verificationSource: 'RiceTrace-Oracle',
+        verificationTimestamp: new Date().toISOString(),
+        notes: `Uploaded by ${reportData.uploadedBy} at ${reportData.createdAt}`
+      };
+
+      return reportDetail;
+
+    } catch (error) {
+      console.error('❌ Failed to verify and fetch report detail:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Determine report type based on filename and content
+   * @param {string} fileName - Original filename
+   * @param {string} contentType - File content type
+   * @returns {string} Report type
+   * @private
+   */
+  _determineReportType(fileName, contentType) {
+    const lowerName = fileName.toLowerCase();
+    
+    if (lowerName.includes('harvest')) return 'HarvestLog';
+    if (lowerName.includes('transport') || lowerName.includes('shipping')) return 'ShippingManifest';
+    if (lowerName.includes('quality') || lowerName.includes('test')) return 'QualityTest';
+    if (lowerName.includes('process') || lowerName.includes('mill')) return 'ProcessingRecord';
+    if (lowerName.includes('storage') || lowerName.includes('warehouse')) return 'StorageLog';
+    if (lowerName.includes('package') || lowerName.includes('pack')) return 'PackagingRecord';
+    
+    // Default based on content type
+    if (contentType.includes('pdf')) return 'InspectionReport';
+    if (contentType.includes('image')) return 'PhotoEvidence';
+    
+    return 'GeneralReport';
+  }
+
+  /**
+   * Get service status
+   * @returns {Object} Service status
    */
   getServiceStatus() {
     return {

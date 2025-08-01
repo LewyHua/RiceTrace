@@ -214,7 +214,61 @@ const getOracleStatus = asyncHandler(async (req, res) => {
       ...status,
       systemTime: new Date().toISOString()
     },
-    message: 'Oracle服务状态获取成功'
+    message: 'Oracle service status retrieved successfully'
+  });
+});
+
+/**
+ * Complete step and transfer batch - new unified endpoint
+ * POST /api/v2/batch/:id/event
+ */
+const completeStepAndTransfer = asyncHandler(async (req, res) => {
+  const { id: batchId } = req.params;
+  const { fromOperator, toOperator, step, reportId } = req.body;
+  
+  // Validate required fields
+  if (!fromOperator || !toOperator || !step || !reportId) {
+    throw new Error('All fields are required: fromOperator, toOperator, step, reportId');
+  }
+  
+  console.log(`🔄 ${req.role} completing step: ${step} for batch ${batchId}`);
+  
+  const result = await riceService.completeStepAndTransfer(
+    req.role,
+    batchId,
+    fromOperator,
+    toOperator,
+    step,
+    reportId
+  );
+  
+  res.json({
+    success: true,
+    data: result,
+    batchId,
+    step,
+    fromOperator,
+    toOperator,
+    role: req.role,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * Get current batch owner for auto-fill
+ * GET /api/batch/:id/owner
+ */
+const getCurrentBatchOwner = asyncHandler(async (req, res) => {
+  const { id: batchId } = req.params;
+  
+  const currentOwner = await riceService.getCurrentBatchOwner(req.role, batchId);
+  
+  res.json({
+    success: true,
+    data: { currentOwner },
+    batchId,
+    role: req.role,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -227,5 +281,7 @@ module.exports = {
   addTestResult,
   addProcessingRecord,
   getBatchStats,
-  getOracleStatus
+  getOracleStatus,
+  completeStepAndTransfer,
+  getCurrentBatchOwner
 }; 

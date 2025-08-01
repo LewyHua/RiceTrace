@@ -1,12 +1,90 @@
 const baseURL = "http://localhost:3000/api";
 
-// 统一的API请求处理函数
-async function apiRequest(method, endpoint, data = null, role = 'consumer') {
+// Role management
+const ROLES = {
+  farmer: 'farmer',
+  processor: 'processor', 
+  consumer: 'consumer',
+  admin: 'admin'
+};
+
+const ROLE_NAMES = {
+  farmer: 'Farmer',
+  processor: 'Processor',
+  consumer: 'Consumer',
+  admin: 'Admin'
+};
+
+// Get current role from localStorage or default to consumer
+function getCurrentRole() {
+  return localStorage.getItem('userRole') || 'consumer';
+}
+
+// Set current role in localStorage
+function setCurrentRole(role) {
+  if (!ROLES[role]) {
+    console.error('Invalid role:', role);
+    return false;
+  }
+  localStorage.setItem('userRole', role);
+  return true;
+}
+
+// Initialize role switching UI
+function initRoleSwitcher() {
+  const currentRole = getCurrentRole();
+  
+  // Create role switcher HTML if not exists
+  if (!document.getElementById('role-switcher')) {
+    const roleSwitcherHTML = `
+      <div id="role-switcher" style="position: fixed; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        <label for="role-select">Role: </label>
+        <select id="role-select">
+          <option value="farmer" ${currentRole === 'farmer' ? 'selected' : ''}>Farmer</option>
+          <option value="processor" ${currentRole === 'processor' ? 'selected' : ''}>Processor</option>
+          <option value="consumer" ${currentRole === 'consumer' ? 'selected' : ''}>Consumer</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('afterbegin', roleSwitcherHTML);
+    
+    // Add change event listener
+    document.getElementById('role-select').addEventListener('change', function(e) {
+      const newRole = e.target.value;
+      setCurrentRole(newRole);
+      location.reload(); // Refresh page to apply new role
+    });
+  }
+  
+  // Apply role-based visibility
+  applyRoleBasedVisibility(currentRole);
+}
+
+// Apply role-based visibility to elements with data-role attribute
+function applyRoleBasedVisibility(currentRole) {
+  const elementsWithRoles = document.querySelectorAll('[data-role]');
+  
+  elementsWithRoles.forEach(element => {
+    const allowedRoles = element.getAttribute('data-role').split(' ');
+    if (allowedRoles.includes(currentRole) || allowedRoles.includes('all')) {
+      element.classList.remove('hidden');
+    } else {
+      element.classList.add('hidden');
+    }
+  });
+}
+
+// Unified API request function
+async function apiRequest(method, endpoint, data = null, role = null) {
+  const userRole = role || getCurrentRole();
+  
   const options = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Role': role
+      'X-User-Role': userRole
     }
   };
   

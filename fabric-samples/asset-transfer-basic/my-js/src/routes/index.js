@@ -19,10 +19,27 @@ router.get('/batch/stats',
   batchController.getBatchStats
 );
 
-// 获取Oracle服务状态
+// Get Oracle service status
 router.get('/oracle/status', 
-  extractRole, // 只需要提取角色，不限制权限
+  extractRole, // Only need to extract role, no permission restriction
   batchController.getOracleStatus
+);
+
+// ===================== New Unified API =====================
+
+// Complete step and transfer - new unified endpoint
+router.post('/v2/batch/:id/event',
+  ...checkRolePermission('transfer'),
+  validateParams(['id']),
+  validateRequest(['fromOperator', 'toOperator', 'step', 'reportId']),
+  batchController.completeStepAndTransfer
+);
+
+// Get current batch owner for auto-fill
+router.get('/batch/:id/owner',
+  ...checkRolePermission('getById'),
+  validateParams(['id']),
+  batchController.getCurrentBatchOwner
 );
 
 // ===================== 质检报告相关路由 =====================

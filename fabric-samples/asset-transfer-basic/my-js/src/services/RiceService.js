@@ -348,7 +348,65 @@ class RiceService {
   }
 
   /**
-   * 验证日期格式
+   * Complete step and transfer batch - unified method
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @param {string} fromOperator - Current operator
+   * @param {string} toOperator - Next operator
+   * @param {string} step - Current step
+   * @param {string} reportId - Report ID for verification
+   * @returns {Promise<Object>} Transaction result
+   */
+  async completeStepAndTransfer(role, batchId, fromOperator, toOperator, step, reportId) {
+    // Validate inputs
+    if (!batchId || !fromOperator || !toOperator || !step || !reportId) {
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: All fields are required`);
+    }
+
+    try {
+      // First, verify the report and get ReportDetail
+      const reportService = require('./ReportService');
+      const reportDetail = await reportService.verifyAndFetchReportDetail(reportId);
+      
+      console.log(`🔄 Processing step and transfer: ${step} from ${fromOperator} to ${toOperator}`);
+      
+      // Call the new smart contract method
+      const result = await fabricDAO.submitTransaction(
+        role,
+        'CompleteStepAndTransfer',
+        batchId,
+        fromOperator,
+        toOperator,
+        step,
+        JSON.stringify(reportDetail)
+      );
+
+      console.log(`✅ Step completed and batch transferred successfully`);
+      return result;
+
+    } catch (error) {
+      console.error('❌ Failed to complete step and transfer:', error.message);
+      throw new Error(`Complete step and transfer failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get current batch owner for auto-fill
+   * @param {string} role - Caller role  
+   * @param {string} batchId - Batch ID
+   * @returns {Promise<string>} Current owner
+   */
+  async getCurrentBatchOwner(role, batchId) {
+    try {
+      const batch = await this.getBatchById(role, batchId);
+      return batch.currentOwner;
+    } catch (error) {
+      throw new Error(`Failed to get current batch owner: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validate date format
    * @private
    */
   _isValidDate(dateString) {
