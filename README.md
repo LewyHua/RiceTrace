@@ -1,61 +1,66 @@
-# 大米供应链追溯系统 - 项目总览
+# Rice Traceability System - Project Overview
 
-Rice Tracer 是一个基于 Hyperledger Fabric 区块链的水稻溯源系统，支持农户、加工商、消费者三类角色，实现水稻批次、加工、质检、产品等全流程追踪。
+Rice Tracer is a Hyperledger Fabric-based rice traceability system that supports three roles: farmers, processors, and consumers, enabling full-process tracking of rice batches, processing, quality inspection, and products.
 
 ---
 
-## 核心技术栈
+## Core Technology Stack
 
--   **区块链**: Hyperledger Fabric v2.x + TypeScript 智能合约
--   **中台**: Node.js + Express + TypeScript
--   **数据库**: Supabase (PostgreSQL + CloudFlare R2存储桶)
+-   **Blockchain**: Hyperledger Fabric v2.x + TypeScript Smart Contracts
+-   **Middleware**: Node.js + Express + TypeScript
+-   **Database**: Supabase (PostgreSQL + Cloudflare R2 Storage Bucket)
 -   **SDK**: @hyperledger/fabric-gateway
--   **开发**: TypeScript/JavaScript ES6+
+-   **Development**: TypeScript/JavaScript ES6+
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 RiceTrace/
 ├── fabric-samples/
-│   ├── test-network/           # Fabric 测试网络
+│   ├── test-network/           # Fabric Test Network configurations
 │   └── asset-transfer-basic/
-│       ├── my-ts/              # TypeScript 智能合约
+│       ├── my-ts/              # TypeScript Smart Contracts
 │       │   └── src/
-│       │       ├── riceTracerContract.ts  # 主合约
-│       │       ├── types.ts               # 数据类型定义
-│       │       └── index.ts
-│       └── my-js/              # Node.js 中台 API & 前端
-│           ├── src/                      # 后端源码 (Controller, Service, DAO)
-│           ├── public/                   # 前端静态文件
-│           ├── config.js                 # 统一配置
-│           ├── server.js                 # API 服务器入口
-│           ├── app.js                    # API 测试客户端
-│           └── ...
-└── README.md                   # 本项目总览文档
+│       │       ├── riceTracerContract.ts  # Main contract
+│       │       ├── types.ts               # Data type definitions
+│       │       └── index.ts               # Contract entry point
+│       └── my-js/              # Node.js Middleware API & Frontend
+│           ├── src/                      # Backend source code (Controllers, Services, DAO)
+│           │   ├── controllers/          # Handles HTTP requests
+│           │   ├── services/             # Contains business logic
+│           │   ├── dao/                  # Interacts with Fabric network
+│           │   ├── middleware/           # Auth and error handling middleware
+│           │   └── routes/               # API route definitions
+│           ├── public/                   # Static frontend files (HTML, CSS, JS)
+│           ├── config.js                 # Unified configuration
+│           ├── server.js                 # API server entry point
+│           ├── app.js                    # API testing client (simplified)
+│           └── package.json              # Project dependencies and scripts
+└── README.md                   # This project overview document
 ```
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 1. 环境要求
+### 1. Environment Requirements
 
 -   Node.js >= 18
 -   Docker
--   TypeScript (已包含在开发依赖中)
--   详情指南：[Hyperledger Fabric 前置条件](https://hyperledger-fabric.readthedocs.io/en/latest/prereqs.html) 完成所有前置条件后，执行./install-fabric.sh 安装Fabric网络
+-   TypeScript (included in dev dependencies)
+-   For detailed prerequisites, refer to the [Hyperledger Fabric Prerequisites](https://hyperledger-fabric.readthedocs.io/en/latest/prereqs.html). After fulfilling all prerequisites, execute `./install-fabric.sh` to set up the Fabric network.
 
-### 2. 启动 Fabric 网络和智能合约 (后端)
+### 2. Start Fabric Network and Smart Contracts (Backend)
 
-在 `RiceTrace` 项目根目录执行：
+Execute in the `RiceTrace` project root directory:
 
 ```bash
 ./start_backend_ts.sh
 ```
 
-### 3. 安装并启动中台 API 服务 (前端/后端)
+### 3. Install and Start Middleware API Service (Frontend/Backend)
 
 ```bash
 cd fabric-samples/asset-transfer-basic/my-js
@@ -63,88 +68,92 @@ npm install
 npm start
 ```
 
-### 4. 访问服务
+### 4. Access Services
 
--   **API 文档**: `http://localhost:3000/api/info`
--   **健康检查**: `http://localhost:3000/api/health`
--   **前端界面**: `http://localhost:3000/`
+-   **API Documentation**: `http://localhost:3000/api/info`
+-   **Health Check**: `http://localhost:3000/api/health`
+-   **Frontend Interface**: `http://localhost:3000/`
 
 ---
 
-## 中台 API 接口 (`my-js`)
+## Middleware API Reference (`my-js`)
 
-### 1. 架构概览
+### 1. Architecture Overview
 
-`my-js` 服务采用三层架构设计：
+The `my-js` service adopts a three-tier architecture design:
 
 ```
 my-js/
-├── config.js                 # 统一配置管理
-├── server.js                 # 主服务器入口
-├── app.js                    # API 测试客户端（简化版）
+├── config.js                 # Unified configuration management
+├── server.js                 # Main server entry point
+├── app.js                    # API testing client (simplified)
 ├── src/
-│   ├── controllers/          # 控制器层 - 处理HTTP请求
+│   ├── controllers/          # Controller layer - handles HTTP requests
 │   │   ├── batchController.js
 │   │   ├── productController.js
 │   │   └── reportController.js
-│   ├── services/             # 服务层 - 业务逻辑处理
+│   ├── services/             # Service layer - processes business logic
 │   │   ├── RiceService.js
 │   │   ├── ProductService.js
 │   │   └── ReportService.js
-│   ├── dao/                  # 数据访问层 - Fabric网络交互
+│   ├── dao/                  # Data Access Layer - interacts with Fabric network
 │   │   └── FabricDAO.js
-│   ├── middleware/           # 中间件层
-│   │   ├── authMiddleware.js    # 权限验证
-│   │   └── errorMiddleware.js   # 错误处理
-│   └── routes/               # 路由配置
+│   ├── middleware/           # Middleware layer
+│   │   ├── authMiddleware.js    # Permission validation
+│   │   └── errorMiddleware.js   # Error handling
+│   └── routes/               # Route configuration
 │       └── index.js
-├── public/                   # 静态文件（前端界面）
+├── public/                   # Static files (frontend interface)
 └── ...
 ```
 
-### 2. API 端点概览
+### 2. API Endpoints Overview
 
-| 方法 | 路径 | 权限 | 描述 |
+| Method | Path | Permissions | Description |
 | :--- | :--- | :--- | :--- |
-| GET | `/api/batch` | `getAll` | 获取所有批次 |
-| POST | `/api/batch` | `create` | 创建新批次 (需 `reportId`) |
-| GET | `/api/batch/:id` | `getById` | 获取指定批次 |
-| GET | `/api/batch/:id/exists` | `getById` | 检查批次是否存在 |
-| PUT | `/api/batch/:id/transfer` | `transfer` | 转移批次所有权 (需 `reportId`) |
-| POST | `/api/batch/:id/test` | `addTest` | 添加质检结果 |
-| POST | `/api/batch/:id/process` | `addProcess` | 添加加工记录 |
-| GET | `/api/batch/stats` | `getAll` | 获取批次统计信息 |
-| POST | `/api/product` | `createProduct` | 创建产品 |
-| GET | `/api/product/:id` | `getProduct` | 获取产品信息 |
-| GET | `/api/product/:id/exists` | `getProduct` | 检查产品是否存在 |
-| GET | `/api/product/:id/traceability` | `getProduct` | 获取产品追溯信息 |
-| POST | `/api/reports/upload` | 任何角色 | 上传质检报告文件 |
-| GET | `/api/reports/my` | 任何角色 | 获取当前用户的报告列表 |
-| GET | `/api/reports/status` | 任何角色 | 获取报告服务状态 |
-| GET | `/api/reports/:reportId/verify` | 任何角色 | 验证报告 (调试用) |
-| GET | `/api/reports/:reportId` | 任何角色 | 获取报告详情 |
-| POST | `/api/reports/admin/update-status` | `admin` | 管理员更新报告状态 (开发测试用) |
-| GET | `/api/oracle/status` | 任何角色 | 获取 Oracle 服务状态 |
+| GET | `/api/batch` | `getAll` | Get all batches |
+| POST | `/api/batch` | `create` | Create new batch (requires `reportId` in `initialTestResult` field) |
+| GET | `/api/batch/:id` | `getById` | Get specified batch by ID |
+| GET | `/api/batch/:id/exists` | `getById` | Check if batch exists |
+| GET | `/api/batch/:id/owner` | `getById` | Get current owner of a batch |
+| PUT | `/api/batch/:id/transfer` | `transfer` | Transfer batch ownership (deprecated, use `/v2/batch/:id/event`) |
+| POST | `/api/batch/:id/test` | `addTest` | Add quality inspection result (supports Oracle verification) |
+| POST | `/api/batch/:id/process` | `addProcess` | Add processing record |
+| GET | `/api/batch/stats` | `getAll` | Get batch statistics |
+| POST | `/api/v2/batch/:id/event` | `transfer` | Unified endpoint to complete a step and transfer a batch |
+| POST | `/api/product` | `createProduct` | Create product |
+| GET | `/api/product/:id` | `getProduct` | Get product information by ID |
+| GET | `/api/product/:id/exists` | `getProduct` | Check if product exists |
+| GET | `/api/product/:id/traceability` | `getProduct` | Get product traceability information |
+| POST | `/api/reports/upload` | Any role | Upload quality inspection report file |
+| GET | `/api/reports/my` | Any role | Get current user's report list |
+| GET | `/api/reports/status` | Any role | Get report service status |
+| GET | `/api/reports/:reportId/verify` | Any role | Verify report (for debugging) |
+| GET | `/api/reports/:reportId` | Any role | Get report details by ID |
+| POST | `/api/reports/admin/update-status` | `admin` | Admin updates report status (for dev/testing only) |
+| GET | `/api/oracle/status` | Any role | Get Oracle service status |
+| GET | `/api/health` | Any role | System health check |
+| GET | `/api/info` | Any role | API information and available endpoints |
 
-### 3. 权限系统
+### 3. Permission System
 
-系统支持多种角色，每种角色拥有不同的接口权限，通过 HTTP 请求头 `X-User-Role` 或 URL 参数 `?role=` 指定。
+The system supports multiple roles, each with different API permissions, specified via the `X-User-Role` HTTP request header or a `?role=` URL parameter.
 
--   **farmer (农户)**: 创建批次、查看信息
--   **processor (加工商)**: 转移批次、添加质检、创建产品
--   **consumer (消费者)**: 查看批次和产品信息
--   **admin (管理员)**: （仅用于开发测试）审核报告
+-   **farmer**: Create batch, view information
+-   **processor**: Transfer batch, add quality inspection, create product
+-   **consumer**: View batch and product information
+-   **admin**: (For development/testing only) Review reports
 
-示例：
+Example:
 ```bash
 curl -H "X-User-Role: farmer" http://localhost:3000/api/batch
 ```
 
-### 4. 请求示例
+### 4. Request Examples
 
-#### 创建批次 (农户权限)
+#### Create Batch (Farmer Permission)
 
-需要提供 `reportId`。
+Requires `reportId` within the `initialTestResult` field.
 
 ```bash
 curl -X POST http://localhost:3000/api/batch \
@@ -152,42 +161,56 @@ curl -X POST http://localhost:3000/api/batch \
   -H "X-User-Role: farmer" \
   -d '{
     "reportId": "your-approved-report-id",
-    "location": "黑龙江省五常市",
-    "variety": "稻花香",
+    "location": "Heilongjiang Wuchang",
+    "variety": "Daohuaxiang",
     "harvestDate": "2024-10-15",
-    "owner": "张三农场",
-    "initialStep": "收割完成",
-    "operator": "张三"
+    "owner": "Zhangsan Farm",
+    "initialTestResult": {
+      "reportId": "report-123",
+      "reportType": "Initial Quality Inspection",
+      "summary": "Initial harvest quality meets standards",
+      "isVerified": true,
+      "verificationSource": "Oracle",
+      "fileHash": "a1b2c3d4e5f6g7h8",
+      "tester": "Li Si",
+      "testDate": "2024-10-16T10:00:00Z",
+      "laboratory": "Wuchang Lab",
+      "certificationNumber": "CERT-2024-001",
+      "notes": "Initial inspection passed."
+    },
+    "initialStep": "Harvest Completed",
+    "operator": "Zhangsan"
   }'
 ```
 
-#### 转移批次所有权 (加工商权限)
+#### Unified Step Completion & Batch Transfer (Processor Permission)
 
-需要提供 `reportId`。
+This new endpoint unifies transfer, quality inspection, and processing records.
 
 ```bash
-curl -X PUT http://localhost:3000/api/batch/batch_12345/transfer \
+curl -X POST http://localhost:3000/api/v2/batch/batch_12345/event \
   -H "Content-Type: application/json" \
   -H "X-User-Role: processor" \
   -d '{
-    "reportId": "your-new-approved-report-id",
-    "newOwner": "ABC加工厂",
-    "operator": "李四"
+    "fromOperator": "ABC Processing Plant",
+    "toOperator": "XYZ Warehouse",
+    "step": "Warehousing",
+    "reportId": "report-456"
   }'
 ```
 
-#### 上传质检报告 (任何角色)
+#### Upload Quality Inspection Report (Any Role)
 
 ```bash
-c/p/b -X POST http://localhost:3000/api/reports/upload \
+curl -X POST http://localhost:3000/api/reports/upload \
   -H "X-User-Role: farmer" \
   -F "report=@/path/to/your/quality_report.pdf"
 ```
 
-#### 审核质检报告 (管理员权限 - 仅开发测试用)
+#### Review Quality Report (Admin Permission - Dev/Testing Only)
 
 ```bash
-c/p/b -X POST http://localhost:3000/api/reports/admin/update-status \
+curl -X POST http://localhost:3000/api/reports/admin/update-status \
   -H "Content-Type: application/json" \
   -H "X-User-Role: admin" \
   -d '{"reportId": "your-report-id", "status": "APPROVED"}'
@@ -195,42 +218,42 @@ c/p/b -X POST http://localhost:3000/api/reports/admin/update-status \
 
 ---
 
-## Oracle 服务与质检报告系统
+## Oracle Service and Quality Report System
 
-### 1. 概述
+### 1. Overview
 
-Oracle 服务集成允许系统从外部权威数据源验证质检报告，确保链上数据的可信度。在 MVP 阶段，Oracle 直接调用内部 `ReportService` 进行验证，无需外部 HTTP 请求。
+The Oracle service integration allows the system to verify quality inspection reports from external authoritative data sources, ensuring the credibility of on-chain data. In the MVP phase, the Oracle directly calls the internal `ReportService` for verification, without external HTTP requests.
 
-### 2. 数据库设计 (`Supabase`)
+### 2. Database Design (`Supabase`)
 
-**`quality_reports` 表结构**:
+**`quality_reports` Table Structure**:
 
 ```sql
 CREATE TABLE quality_reports (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  file_hash TEXT NOT NULL,              -- SHA-256 文件哈希
-  file_name TEXT NOT NULL,              -- 原始文件名
-  file_url TEXT NOT NULL,               -- R2 访问URL
-  file_key TEXT NOT NULL,               -- R2 存储键
-  status TEXT DEFAULT 'PENDING'         -- 审核状态 (PENDING, APPROVED, REJECTED)
+  file_hash TEXT NOT NULL,              -- SHA-256 file hash
+  file_name TEXT NOT NULL,              -- Original file name
+  file_url TEXT NOT NULL,               -- R2 access URL
+  file_key TEXT NOT NULL,               -- R2 storage key
+  status TEXT DEFAULT 'PENDING'         -- Review status (PENDING, APPROVED, REJECTED)
     CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
-  uploaded_by TEXT,                     -- 上传者角色
-  uploader_id TEXT,                     -- 上传者ID
-  content_type TEXT,                    -- MIME类型
-  file_size BIGINT                      -- 文件大小
+  uploaded_by TEXT,                     -- Uploader role
+  uploader_id TEXT,                     -- Uploader ID
+  content_type TEXT,                    -- MIME type
+  file_size BIGINT                      -- File size
 );
 ```
 
-### 3. 链上数据结构扩展 (`my-ts/src/types.ts`)
+### 3. On-chain Data Structure Extension (`my-ts/src/types.ts`)
 
-智能合约的 `TestResult` 类型已扩展，包含 Oracle 验证相关字段：
+The `TestResult` type in the smart contract has been extended to include Oracle verification related fields:
 
 ```typescript
 export class TestResult {
-  // ... 原有字段
+  // ... existing fields
 
-  // Oracle 验证相关字段
+  // Oracle verification related fields
   public isVerified: boolean = false;
   public verificationSource?: string;
   public externalReportId?: string;
@@ -245,44 +268,41 @@ export class TestResult {
 
 ---
 
-## 前端界面 (`public/`)
+## Frontend Interface (`public/`)
 
-前端采用简洁的静态HTML页面，通过JavaScript与后端API交互。
+The frontend uses simple static HTML pages and interacts with the backend API via JavaScript.
 
--   **首页**: `index.html` (角色选择，快速入口)
--   **上传报告**: `upload-report.html`
--   **报告审核**: `admin-reports.html` (开发测试用，提供便捷的报告审核功能)
--   **创建批次**: `create.html`
--   **转移批次**: `transfer.html`
--   **批次详情**: `detail.html`
--   **样式**: `style.css` (简化风格，无高级特效，以功能和稳定性为优先)
--   **通用JS**: `common.js` (API请求封装、UI渲染辅助)
+-   **Home Page**: `index.html` (role selection, quick entry)
+-   **Upload Report**: `upload-report.html`
+-   **Report Review**: `admin-reports.html` (for development/testing, provides convenient report review functionality)
+-   **Create Batch**: `create.html`
+-   **Static Assets**: `style.css` (simplified style, no advanced effects, prioritizing functionality and stability), `common.js` (API request encapsulation, UI rendering helpers)
 
-**质检记录显示优化**:
--   在 `detail.html` 中，质检记录采用卡片式布局，避免表格内容过长。
--   长文本（如文件哈希、报告内容）自动截断并显示省略号。
--   状态（PASSED/FAILED）有颜色区分，增强可读性。
+**Quality Inspection Record Display Optimization**:
+-   In `index.html` (which now handles batch details), quality inspection records use a card-like layout to avoid excessively long table content.
+-   Long text (e.g., file hashes, report content) is automatically truncated with ellipses.
+-   Statuses (PASSED/FAILED) are color-coded for improved readability.
 
 ---
 
-## 环境配置
+## Environment Configuration
 
-### 必需的环境变量 (`.env` 文件或系统环境变量)
+### Required Environment Variables (`.env` file or system environment variables)
 
-在 `fabric-samples/asset-transfer-basic/my-js` 目录下创建 `.env` 文件：
+Create a `.env` file in the `fabric-samples/asset-transfer-basic/my-js` directory:
 
 ```dotenv
-# Supabase 配置
+# Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 
-# Cloudflare R2 配置
+# Cloudflare R2 Configuration
 CLOUDFLARE_ACCOUNT_ID=your-account-id
 CLOUDFLARE_ACCESS_KEY_ID=your-access-key
 CLOUDFLARE_SECRET_ACCESS_KEY=your-secret-key
 CLOUDFLARE_BUCKET_NAME=your-bucket-name
 
-# 其他配置
+# Other Configurations
 NODE_ENV=development
 PORT=3000
 LOG_LEVEL=info
@@ -290,77 +310,54 @@ LOG_LEVEL=info
 
 ---
 
-## 开发指南
+## Development Guide
 
-### 新增业务功能
+### Adding New Business Features
 
-1.  在智能合约 (`my-ts/src/riceTracerContract.ts`) 中添加新方法。
-2.  更新服务层 (`src/services/`)，处理业务逻辑。
-3.  创建或更新控制器 (`src/controllers/`)，处理 HTTP 请求。
-4.  配置路由 (`src/routes/index.js`)。
-5.  更新权限配置 (`config.js`)。
-6.  更新前端页面以支持新功能。
+1.  Add new methods to the smart contract (`my-ts/src/riceTracerContract.ts`).
+2.  Update the service layer (`src/services/`) to handle business logic.
+3.  Create or update the controller (`src/controllers/`) to handle HTTP requests.
+4.  Configure routes (`src/routes/index.js`).
+5.  Update permission configuration (`config.js`).
+6.  Update frontend pages to support new features.
 
-### 错误处理
+### Error Handling
 
--   系统使用统一的错误处理机制，业务错误使用预定义的错误代码。
--   所有错误都有标准化的响应格式。
--   支持开发环境下的详细错误信息。
--   报告未通过审核时，提供用户友好的错误提示（如"报告正在等待审核"、"报告已被拒绝"）。
+-   The system uses a unified error handling mechanism, with business errors using predefined error codes.
+-   All errors have a standardized response format.
+-   Detailed error messages are supported in development environments.
+-   When a report fails review, user-friendly error messages are provided (e.g., "Report is pending review", "Report has been rejected").
 
-### 日志系统
+### Logging System
 
--   请求日志：记录所有 HTTP 请求。
--   操作日志：记录用户操作和结果。
--   错误日志：记录详细的错误信息和堆栈。
+-   Request logs: Records all HTTP requests.
+-   Operation logs: Records user operations and results.
+-   Error logs: Records detailed error information and stack traces.
 
 ---
 
-## 测试与部署
+## Testing and Deployment
 
-### 1. 运行测试
+### 1. Running Tests
 
-在 `fabric-samples/asset-transfer-basic/my-js` 目录下：
+In the `fabric-samples/asset-transfer-basic/my-js` directory:
 
 ```bash
 npm start
 
-# 在另一个终端中测试不同角色功能 (简化版API测试客户端)
-node app.js --role farmer      # 测试农户功能
-node app.js --role processor   # 测试加工商功能
-node app.js --role consumer    # 测试消费者功能
+# In another terminal, test different role functionalities (simplified API testing client)
+node app.js --role farmer      # Test farmer functions
+node app.js --role processor   # Test processor functions
+node app.js --role consumer    # Test consumer functions
 ```
 
-**手动测试步骤**:
-1.  确保 Fabric 网络和 API 服务器已启动。
-2.  打开浏览器访问 `http://localhost:3000`。
-3.  点击 **"上传质检报告"** 按钮，上传一个文件。
-4.  点击 **"报告审核"** 按钮（紫色），在列表中找到刚上传的报告，点击 **"批准"**。
-5.  点击 **"农户"** 或 **"加工/质检"** 按钮，进入对应角色页面。
-6.  尝试 **"创建批次"** 或 **"转移批次"**，并输入刚刚批准的报告ID。
-7.  点击 **"消费者"** 按钮，查询批次详情，查看优化的质检记录显示。
+**Manual Testing Steps**:
+1.  Ensure the Fabric network and API server are running.
+2.  Open your browser and navigate to `http://localhost:3000`.
+3.  Click the **"Upload Quality Report"** button and upload a file.
+4.  Click the **"Review Reports"** button (purple), find the newly uploaded report in the list, and click **"Approve"**.
+5.  Click the **"Farmer"** or **"Processor/Inspector"** button to enter the corresponding role page.
+6.  Attempt to **"Create New Batch"** or initiate a **"Transfer & Process"** operation, and enter the newly approved report ID.
+7.  Click the **"Consumer"** button to query batch details and observe the optimized quality inspection record display.
 
-### 2. 生产部署建议
-
--   **安全**: 限制 `admin-reports.html` 的访问权限，或在生产环境删除此文件，改用 Supabase 后台进行正式审核。
--   **性能**: 考虑为大量报告添加分页功能。
--   **监控**: 添加更完善的操作日志记录和报警机制。
--   **备份**: 确保 Supabase 数据定期备份。
--   **文件安全**: 细化 Cloudflare R2 的访问策略，限制公共读写。
-
----
-
-## 总结
-
-当前项目已达到 **MVP (最小可行产品)** 标准：
-
--   ✅ 核心功能完整 (从报告上传到链上追溯)
--   ✅ 用户体验良好 (友好的错误提示、优化的数据显示)
--   ✅ 错误处理完善
--   ✅ 开发调试便利 (内置审核页面)
--   ✅ 架构设计合理 (三层架构、Oracle集成)
-
-所有关键问题已解决，系统可以正常运行和测试。
-
----
 
