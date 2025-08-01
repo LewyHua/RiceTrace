@@ -1,35 +1,35 @@
 const path = require('node:path');
 
-// 加载环境变量
+// Load environment variables
 require('dotenv').config();
 
 /**
- * 大米供应链追溯系统配置文件
- * 统一管理所有环境配置和组织信息
+ * Rice traceability system configuration file
+ * Manage all environment configurations and organization information
  */
 
-// 基础环境配置
+// Basic environment configuration
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.PORT || 3000,
   LOG_LEVEL: process.env.LOG_LEVEL || 'info'
 };
 
-// Hyperledger Fabric 网络配置
+// Hyperledger Fabric network configuration
 const fabric = {
   channelName: process.env.CHANNEL_NAME || 'channel1',
   chaincodeName: process.env.CHAINCODE_NAME || 'basic',
   
-  // 网络超时配置
+  // Network timeout configuration
   timeouts: {
-    evaluate: 5000,     // 5秒
-    endorse: 15000,     // 15秒
-    submit: 5000,       // 5秒
-    commitStatus: 60000 // 60秒
+    evaluate: 5000,     // 5 seconds
+    endorse: 15000,     // 15 seconds
+    submit: 5000,       // 5 seconds
+    commitStatus: 60000 // 60 seconds
   }
 };
 
-// 组织角色配置映射
+// Organization role configuration mapping
 const organizations = {
   farmer: {
     role: 'farmer',
@@ -37,7 +37,7 @@ const organizations = {
     mspId: 'Org1MSP',
     peerPort: '7051',
     peerEndpoint: 'localhost:7051',
-    description: '农户组织 - 负责创建批次、初期加工、转移'
+    description: 'Farmer organization - responsible for creating batches, initial processing, and transfer'
   },
   processor: {
     role: 'processor',
@@ -45,7 +45,7 @@ const organizations = {
     mspId: 'Org2MSP',
     peerPort: '9051',
     peerEndpoint: 'localhost:9051',
-    description: '加工商组织 - 负责质检、深加工、产品包装、转移'
+    description: 'Processor organization - responsible for quality inspection, deep processing, product packaging, and transfer'
   },
   consumer: {
     role: 'consumer',
@@ -53,7 +53,7 @@ const organizations = {
     mspId: 'Org3MSP',
     peerPort: '11051',
     peerEndpoint: 'localhost:11051',
-    description: '消费者/监管组织 - 查看追溯信息'
+    description: 'Consumer/regulatory organization - view traceability information'
   }
 };
 
@@ -65,7 +65,7 @@ const permissions = {
   admin: ['getAll', 'create', 'getById', 'transfer', 'addTest', 'addProcess', 'createProduct', 'getProduct']
 };
 
-// 路径配置工厂函数
+// Path configuration factory function
 function getPaths(orgConfig) {
   const testNetworkPath = path.resolve(__dirname, '..', '..', 'test-network');
   const cryptoPath = path.resolve(testNetworkPath, 'organizations', 'peerOrganizations', orgConfig.org);
@@ -79,17 +79,17 @@ function getPaths(orgConfig) {
   };
 }
 
-// Oracle 服务配置
+// Oracle service configuration
 const oracleServices = {
   foodSafety: {
     baseUrl: process.env.FOOD_SAFETY_API_URL || 'https://api.mock-food-safety.gov/v1',
     apiKey: process.env.FOOD_SAFETY_API_KEY || 'mock-api-key',
-    timeout: 10000, // 10秒超时
-    retryCount: 3   // 重试次数
+    timeout: 10000, // 10 seconds timeout
+    retryCount: 3   // Retry count
   }
 };
 
-// Cloudflare R2 配置 (兼容S3 API)
+// Cloudflare R2 configuration (compatible with S3 API)
 const cloudflareR2 = {
   accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
   accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
@@ -99,15 +99,15 @@ const cloudflareR2 = {
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`
 };
 
-// Supabase 配置
+// Supabase configuration
 const supabase = {
   url: process.env.SUPABASE_URL,
   anonKey: process.env.SUPABASE_ANON_KEY,
-  // 使用 Transaction pooler 避免免费版连接限制
+  // Use Transaction pooler to avoid free version connection limit
   poolingUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace('.supabase.co', '.pooler.supabase.com') : '',
   options: {
     auth: {
-      persistSession: false // 对于服务端应用，禁用会话持久化
+      persistSession: false // For server applications, disable session persistence
     },
     db: {
       schema: 'public'
@@ -115,7 +115,7 @@ const supabase = {
   }
 };
 
-// 错误代码配置
+// Error code configuration
 const errorCodes = {
   PERMISSION_DENIED: 'PERMISSION_DENIED',
   ROLE_MISSING: 'ROLE_MISSING',
@@ -127,7 +127,7 @@ const errorCodes = {
   ORACLE_VERIFICATION_FAILED: 'ORACLE_VERIFICATION_FAILED'
 };
 
-// 验证配置
+// Validate configuration
 function validateConfig() {
   const requiredRoles = ['farmer', 'processor', 'consumer'];
   for (const role of requiredRoles) {
@@ -139,10 +139,10 @@ function validateConfig() {
     }
   }
   
-  console.log('✅ Configuration validation passed');
+  console.log('Configuration validation passed');
 }
 
-// 获取角色配置
+// Get role configuration
 function getRoleConfig(role) {
   const orgConfig = organizations[role];
   if (!orgConfig) {
@@ -156,12 +156,12 @@ function getRoleConfig(role) {
   };
 }
 
-// 获取所有可用角色
+// Get all available roles
 function getAvailableRoles() {
   return Object.keys(organizations);
 }
 
-// 检查角色是否有权限
+// Check if role has permission
 function hasPermission(role, permission) {
   const rolePermissions = permissions[role];
   return rolePermissions && rolePermissions.includes(permission);
@@ -177,7 +177,7 @@ module.exports = {
   supabase,
   errorCodes,
   
-  // 工具函数
+  // Utility functions
   validateConfig,
   getRoleConfig,
   getAvailableRoles,
