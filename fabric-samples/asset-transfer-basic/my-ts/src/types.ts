@@ -5,16 +5,16 @@
 import { Object, Property } from 'fabric-contract-api';
 
 /**
- * 机构类型枚举
+ * Organization type enumeration
  */
 export enum OrganizationType {
-    FARM = 1,           // 农场
-    MIDDLEMAN_TESTER = 2, // 中间商/测试机构
-    CONSUMER = 3        // 消费者
+    FARM = 1,           // Farm
+    MIDDLEMAN_TESTER = 2, // Middleman/tester
+    CONSUMER = 3        // Consumer
 }
 
 /**
- * 机构信息
+ * Organization information
  */
 @Object()
 export class OrganizationInfo {
@@ -61,28 +61,28 @@ export class ReportDetail {
 }
 
 /**
- * 历史事件记录 - 统一记录所有权转移和处理过程
+ * History event record - unified record of ownership transfer and processing
  */
 @Object()
 export class HistoryEvent {
     @Property()
-    public timestamp: string = ''; // ISO8601格式
+    public timestamp: string = ''; // ISO8601 format
 
     @Property()
-    public from: string = ''; // 转移来源方
+    public from: string = ''; // Transfer source
 
     @Property()
-    public to: string = ''; // 转移接收方
+    public to: string = ''; // Transfer destination
 
     @Property()
-    public step: string = ''; // 当前环节：Harvested, Transporting, QualityInspection, Processing, Packaged 等
+    public step: string = ''; // Current step: Harvested, Transporting, QualityInspection, Processing, Packaged, etc.
 
     @Property('report', 'ReportDetail')
     public report: ReportDetail = new ReportDetail();
 }
 
 /**
- * 质检信息结构 - 保留用于向后兼容
+ * Test result structure - retained for backward compatibility
  */
 @Object()
 export class TestResult {
@@ -104,7 +104,7 @@ export class TestResult {
     @Property()
     public result: string = '';
 
-    // Oracle 验证相关字段
+    // Oracle verification related fields
     @Property()
     public isVerified: boolean = false;
 
@@ -167,12 +167,12 @@ export class RiceBatch {
 }
 
 /**
- * 产品结构
+ * Product structure
  */
 @Object()
 export class Product {
     @Property()
-    public docType: string = 'product'; // 固定值 "product"
+    public docType: string = 'product'; // Fixed value "product"
 
     @Property()
     public productId: string = '';
@@ -188,7 +188,7 @@ export class Product {
 }
 
 /**
- * 产品和批次联合查询结果
+ * Combined query result of product and batch
  */
 @Object()
 export class ProductWithBatch {
