@@ -14,11 +14,11 @@ class OracleClient {
    */
   async verifyTestReport(reportId) {
     if (!reportId || typeof reportId !== 'string') {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Report ID is required`);
     }
 
     try {
-      console.log(`🔍 Oracle开始验证报告: ${reportId}`);
+      console.log(`Oracle start to verify report: ${reportId}`);
 
       // 使用内部ReportService验证报告
       const verificationResult = await reportService.verifyReport(reportId);
@@ -47,7 +47,7 @@ class OracleClient {
         fileUrl: reportData.fileUrl
       };
 
-      console.log(`✅ Oracle验证成功: ${reportId}`);
+      console.log(`Oracle verification successful: ${reportId}`);
 
       return {
         success: true,
@@ -58,7 +58,7 @@ class OracleClient {
       };
 
     } catch (error) {
-      console.error(`❌ Oracle验证失败: ${error.message}`);
+      console.error(`Oracle verification failed: ${error.message}`);
       throw error;
     }
   }
@@ -71,14 +71,14 @@ class OracleClient {
    */
   _validateTestReportData(data) {
     if (!data || typeof data !== 'object') {
-      throw new Error(`${errorCodes.ORACLE_ERROR}: 无效的API响应格式`);
+      throw new Error(`${errorCodes.ORACLE_ERROR}: Invalid API response format`);
     }
 
     // 必需字段检查
     const requiredFields = ['reportId', 'testResult', 'tester', 'testDate'];
     for (const field of requiredFields) {
       if (!data[field]) {
-        throw new Error(`${errorCodes.ORACLE_ERROR}: API响应缺少必需字段: ${field}`);
+        throw new Error(`${errorCodes.ORACLE_ERROR}: API response missing required field: ${field}`);
       }
     }
 
@@ -108,7 +108,7 @@ class OracleClient {
   _validateAndFormatDate(dateString) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      throw new Error(`${errorCodes.ORACLE_ERROR}: 无效的日期格式: ${dateString}`);
+      throw new Error(`${errorCodes.ORACLE_ERROR}: Invalid date format: ${dateString}`);
     }
     return date.toISOString();
   }

@@ -386,7 +386,8 @@ class RiceService {
 
     } catch (error) {
       console.error('❌ Failed to complete step and transfer:', error.message);
-      throw new Error(`Complete step and transfer failed: ${error.message}`);
+      // Re-throw the original error to preserve specific error messages
+      throw error;
     }
   }
 

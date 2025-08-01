@@ -38,9 +38,42 @@ function errorHandler(err, req, res, next) {
  * @returns {Object} 解析后的错误信息
  */
 function parseError(err) {
-  const message = err.message || '未知错误';
+  const message = err.message || 'Unknown error';
   
-  // 检查是否是我们定义的错误代码
+  console.log('🔍 Parsing error:', message); // Debug log
+  
+  // Handle database query errors for invalid report IDs (must be first to catch specific DB errors)
+  if (message.includes('Database query failed') && message.includes('invalid input syntax for type uuid')) {
+    console.log('✅ Matched UUID format error'); // Debug log
+    return {
+      code: errorCodes.VALIDATION_ERROR,
+      message: 'Invalid report ID format. Report ID must be a valid UUID.',
+      statusCode: 400
+    };
+  }
+  
+  // Handle general database query failures
+  if (message.includes('Database query failed')) {
+    return {
+      code: errorCodes.VALIDATION_ERROR, 
+      message: 'Invalid request: ' + message.replace('Database query failed: ', ''),
+      statusCode: 400
+    };
+  }
+  
+  // Handle specific Oracle verification error messages
+  if (message.includes('Oracle verification failed') || 
+      message.includes('Report not found') ||
+      message.includes('Report is pending review') ||
+      message.includes('Report has been rejected')) {
+    return {
+      code: errorCodes.ORACLE_VERIFICATION_FAILED,
+      message: message,
+      statusCode: 400
+    };
+  }
+  
+  // Check if it's one of our defined error codes
   if (message.includes(errorCodes.PERMISSION_DENIED)) {
     return {
       code: errorCodes.PERMISSION_DENIED,
@@ -81,6 +114,14 @@ function parseError(err) {
       details: 'Hyperledger Fabric 网络连接或操作失败'
     };
   }
+  
+  if (message.includes(errorCodes.ORACLE_VERIFICATION_FAILED)) {
+    return {
+      code: errorCodes.ORACLE_VERIFICATION_FAILED,
+      message: message.replace(`${errorCodes.ORACLE_VERIFICATION_FAILED}: `, ''),
+      statusCode: 400
+    };
+  }
 
   // 处理特定的Node.js错误
   if (err.code === 'ENOENT') {
@@ -100,10 +141,10 @@ function parseError(err) {
     };
   }
 
-  // 默认内部服务器错误
+  // Default internal server error  
   return {
     code: errorCodes.INTERNAL_ERROR,
-    message: process.env.NODE_ENV === 'development' ? message : '内部服务器错误',
+    message: message, // Always show the actual error message now
     statusCode: 500
   };
 }

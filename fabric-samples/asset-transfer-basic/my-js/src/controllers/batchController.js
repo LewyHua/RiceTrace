@@ -64,7 +64,7 @@ const createBatch = asyncHandler(async (req, res) => {
   const { reportId } = req.body;
   
   if (!reportId) {
-    throw new Error('创建批次需要提供质检报告ID (reportId)');
+    throw new Error('Creating batch requires a report ID (reportId)');
   }
 
   const batchData = {
@@ -102,7 +102,7 @@ const transferBatch = asyncHandler(async (req, res) => {
   const { reportId } = req.body;
 
   if (!reportId) {
-    throw new Error('转移批次需要提供质检报告ID (reportId)');
+    throw new Error('Transferring batch requires a report ID (reportId)');
   }
 
   const transferData = {
@@ -231,7 +231,7 @@ const completeStepAndTransfer = asyncHandler(async (req, res) => {
     throw new Error('All fields are required: fromOperator, toOperator, step, reportId');
   }
   
-  console.log(`🔄 ${req.role} completing step: ${step} for batch ${batchId}`);
+  console.log(`${req.role} completing step: ${step} for batch ${batchId}`);
   
   const result = await riceService.completeStepAndTransfer(
     req.role,
