@@ -107,19 +107,19 @@ async function apiRequest(method, endpoint, data = null, role = null) {
   }
 }
 
-// 显示通用错误信息
+// Display common error information
 function showError(elementId, error) {
   const errorMsg = error.message || error.toString();
   document.getElementById(elementId).innerHTML = `<div class="error">❌ ${errorMsg}</div>`;
 }
 
-// 显示加载状态
-function showLoading(elementId, message = '加载中...') {
+// Display loading status
+function showLoading(elementId, message = 'Loading...') {
   document.getElementById(elementId).innerHTML = `<div class="loading">⏳ ${message}</div>`;
 }
 
 function renderTable(data) {
-  if (!data || data.length === 0) return "<p>暂无批次数据</p>";
+  if (!data || data.length === 0) return "<p>No batch data</p>";
   let rows = data.map(batch => `
     <tr>
       <td><a href="detail.html?batchId=${batch.batchId}">${batch.batchId}</a></td>
@@ -152,18 +152,18 @@ async function getAllBatches(role = 'farmer') {
   if (!container) return;
   
   try {
-    showLoading("batchTableContainer", "获取批次列表...");
+    showLoading("batchTableContainer", "Getting batch list...");
     const result = await apiRequest('GET', '/batch', null, role);
     
-    // 新的API返回格式：{ success: true, data: [...], count: N }
+    // New API return format: { success: true, data: [...], count: N }
     const batches = result.data || [];
     container.innerHTML = renderTable(batches);
     
-    // 显示统计信息
+    // Display statistics
     if (result.count !== undefined) {
       const statsDiv = document.createElement('div');
       statsDiv.className = 'stats';
-      statsDiv.innerHTML = `<p>共找到 ${result.count} 个批次</p>`;
+      statsDiv.innerHTML = `<p>Found ${result.count} batches</p>`;
       container.insertBefore(statsDiv, container.firstChild);
     }
     
@@ -173,93 +173,93 @@ async function getAllBatches(role = 'farmer') {
 }
 
 function renderDetail(batch) {
-  if (!batch || !batch.batchId) return "<p>未找到该批次</p>";
+  if (!batch || !batch.batchId) return "<p>Batch not found</p>";
   
-  // 统一表格样式
+  // Unified table style
   function renderTableHeader(cols) {
     return `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
   }
   function renderTableRows(rows, keys) {
     return `<tbody>${rows.map(row => `<tr>${keys.map(k => {
       let value = row[k] || '-';
-      // 对于特定字段进行格式化
+      // Format specific fields
       if (k === 'report' && value.length > 30) {
-        // 报告内容过长时截断并显示省略号
+        // Truncate report content and display ellipsis
         value = value.substring(0, 30) + '...';
       } else if (k === 'testId' && value.length > 20) {
-        // 测试ID过长时截断
+        // Truncate test ID
         value = value.substring(0, 20) + '...';
       } else if (k === 'timestamp' && value !== '-') {
-        // 时间格式化
+        // Time formatting
         try {
           value = new Date(value).toLocaleString('zh-CN');
         } catch (e) {
-          // 如果时间格式无效，保持原值
+          // If time format is invalid, keep original value
         }
       }
       return `<td style="max-width: 150px; word-wrap: break-word; overflow-wrap: break-word;">${value}</td>`;
     }).join('')}</tr>`).join('')}</tbody>`;
   }
   
-  // 批次详情表格
+  // Batch detail table
   const detailTable = `
-    <h3 style='margin-top:0;'>批次详情</h3>
+    <h3 style='margin-top:0;'>Batch detail</h3>
     <table>
-      ${renderTableHeader(['字段', '内容'])}
+      ${renderTableHeader(['Field', 'Content'])}
       <tbody>
-        <tr><td>批次ID</td><td>${batch.batchId}</td></tr>
-        <tr><td>产地</td><td>${batch.origin || '-'}</td></tr>
-        <tr><td>品种</td><td>${batch.variety || '-'}</td></tr>
-        <tr><td>收获日期</td><td>${batch.harvestDate || '-'}</td></tr>
-        <tr><td>当前所有者</td><td>${batch.currentOwner || '-'}</td></tr>
-        <tr><td>当前步骤</td><td>${batch.processingStep || '-'}</td></tr>
+        <tr><td>Batch ID</td><td>${batch.batchId}</td></tr>
+        <tr><td>Origin</td><td>${batch.origin || '-'}</td></tr>
+        <tr><td>Variety</td><td>${batch.variety || '-'}</td></tr>
+        <tr><td>Harvest Date</td><td>${batch.harvestDate || '-'}</td></tr>
+        <tr><td>Current Owner</td><td>${batch.currentOwner || '-'}</td></tr>
+        <tr><td>Current Step</td><td>${batch.processingStep || '-'}</td></tr>
       </tbody>
     </table>
   `;
   
-  // 质检记录表格
+  // Quality inspection record table
   const inspections = batch.testResults || [];
   let inspectionTable = '';
   if (inspections.length > 0) {
-    inspectionTable = `<h3 style='margin-top:32px;'>质检记录</h3>`;
+    inspectionTable = `<h3 style='margin-top:32px;'>Quality inspection record</h3>`;
     inspections.slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || '')).forEach((inspection, index) => {
       const time = inspection.timestamp ? new Date(inspection.timestamp).toLocaleString('zh-CN') : '-';
       const reportId = inspection.reportId || '-';
       const reportHash = inspection.reportHash ? inspection.reportHash.substring(0, 16) + '...' : '-';
-      const isVerified = inspection.isVerified ? '✅ 已验证' : '❌ 未验证';
+      const isVerified = inspection.isVerified ? '✅ Verified' : '❌ Not verified';
       
       inspectionTable += `
         <div style="border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; background: #f9f9f9;">
           <table style="width: 100%; border: none;">
-            <tr><td style="border: none; width: 100px;"><strong>测试ID</strong></td><td style="border: none;">${inspection.testId || '-'}</td></tr>
-            <tr><td style="border: none;"><strong>测试员</strong></td><td style="border: none;">${inspection.testerId || '-'}</td></tr>
-            <tr><td style="border: none;"><strong>温度</strong></td><td style="border: none;">${inspection.temperature || '-'}</td></tr>
-            <tr><td style="border: none;"><strong>结果</strong></td><td style="border: none;"><span style="color: ${inspection.result === 'PASSED' ? '#4caf50' : '#f44336'}">${inspection.result || '-'}</span></td></tr>
-            <tr><td style="border: none;"><strong>时间</strong></td><td style="border: none;">${time}</td></tr>
-            <tr><td style="border: none;"><strong>验证状态</strong></td><td style="border: none;">${isVerified}</td></tr>
-            <tr><td style="border: none;"><strong>报告ID</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportId}</td></tr>
-            <tr><td style="border: none;"><strong>文件哈希</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportHash}</td></tr>
+            <tr><td style="border: none; width: 100px;"><strong>Test ID</strong></td><td style="border: none;">${inspection.testId || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>Tester</strong></td><td style="border: none;">${inspection.testerId || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>Temperature</strong></td><td style="border: none;">${inspection.temperature || '-'}</td></tr>
+            <tr><td style="border: none;"><strong>Result</strong></td><td style="border: none;"><span style="color: ${inspection.result === 'PASSED' ? '#4caf50' : '#f44336'}">${inspection.result || '-'}</span></td></tr>
+            <tr><td style="border: none;"><strong>Time</strong></td><td style="border: none;">${time}</td></tr>
+            <tr><td style="border: none;"><strong>Verification Status</strong></td><td style="border: none;">${isVerified}</td></tr>
+            <tr><td style="border: none;"><strong>Report ID</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportId}</td></tr>
+            <tr><td style="border: none;"><strong>File Hash</strong></td><td style="border: none; font-family: monospace; font-size: 12px;">${reportHash}</td></tr>
           </table>
         </div>
       `;
     });
   } else {
-    inspectionTable = `<h3 style='margin-top:32px;'>质检记录</h3><p>暂无质检记录</p>`;
+    inspectionTable = `<h3 style='margin-top:32px;'>Quality inspection record</h3><p>No quality inspection record</p>`;
   }
   
-  // 加工记录表格，时间倒序
+  // Processing record table, time descending
   const processHistory = (batch.processHistory || []).slice().sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
   let processTable = '';
   if (processHistory.length > 0) {
-    processTable = `<h3 style='margin-top:32px;'>加工记录</h3><table>
-      ${renderTableHeader(['操作人', '时间', '步骤'])}
+    processTable = `<h3 style='margin-top:32px;'>Processing record</h3><table>
+      ${renderTableHeader(['Operator', 'Time', 'Step'])}
       ${renderTableRows(processHistory, ['operator', 'timestamp', 'step'])}
     </table>`;
   } else {
-    processTable = `<h3 style='margin-top:32px;'>加工记录</h3><p>暂无加工记录</p>`;
+    processTable = `<h3 style='margin-top:32px;'>Processing record</h3><p>No processing record</p>`;
   }
   
-  // 转移记录箭头可视化（从上到下，按时间顺序）
+  // Transfer record arrow visualization (from top to bottom, in chronological order)
   const ownerHistory = (batch.ownerHistory || []).slice().sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
   let ownerChain = '';
   if (ownerHistory.length > 0) {
@@ -272,9 +272,9 @@ function renderDetail(batch) {
         ${i < ownerHistory.length - 1 ? "<div style='font-size:1.5em; color:#e67e22; margin: 5px 0;'>↓</div>" : ''}
       </div>`;
     }).join('');
-    ownerChain = `<div style='margin-top:32px;'><h3>转移记录</h3><div style='border: 1px solid #ecf0f1; padding: 15px; border-radius: 5px; background: #fafafa;'>${ownerChain}</div></div>`;
+    ownerChain = `<div style='margin-top:32px;'><h3>Transfer record</h3><div style='border: 1px solid #ecf0f1; padding: 15px; border-radius: 5px; background: #fafafa;'>${ownerChain}</div></div>`;
   } else {
-    ownerChain = `<div style='margin-top:32px;'><h3>转移记录</h3><p>暂无转移记录</p></div>`;
+    ownerChain = `<div style='margin-top:32px;'><h3>Transfer record</h3><p>No transfer record</p></div>`;
   }
   
   return detailTable + inspectionTable + processTable + ownerChain;
@@ -286,15 +286,15 @@ async function getBatch() {
   const batchId = batchIdInput ? batchIdInput.value : params.get("batchId");
   
   if (!batchId) {
-    document.getElementById("batchDetail").innerHTML = "<p>请提供批次ID</p>";
+    document.getElementById("batchDetail").innerHTML = "<p>Please provide batch ID</p>";
     return;
   }
   
   try {
-    showLoading("batchDetail", "获取批次详情...");
+    showLoading("batchDetail", "Getting batch details...");
     const result = await apiRequest('GET', `/batch/${batchId}`, null, 'consumer');
     
-    // 新的API返回格式：{ success: true, data: {...} }
+    // New API return format: { success: true, data: {...} }
     const batch = result.data;
     document.getElementById("batchDetail").innerHTML = renderDetail(batch);
   } catch (err) {
@@ -302,10 +302,10 @@ async function getBatch() {
   }
 }
 
-// 创建批次的辅助函数
+// Create batch auxiliary function
 async function createBatch(batchData, resultElementId) {
   try {
-    showLoading(resultElementId, "创建批次中...");
+    showLoading(resultElementId, "Creating batch...");
     const result = await apiRequest('POST', '/batch', batchData, 'farmer');
     
     document.getElementById(resultElementId).innerHTML = `
@@ -324,18 +324,18 @@ async function createBatch(batchData, resultElementId) {
   }
 }
 
-// 转移批次所有权的辅助函数
+// Transfer batch ownership auxiliary function
 async function transferBatch(batchId, transferData, resultElementId) {
   try {
-    showLoading(resultElementId, "转移中...");
+    showLoading(resultElementId, "Transferring...");
     const result = await apiRequest('PUT', `/batch/${batchId}/transfer`, transferData, 'processor');
     
     document.getElementById(resultElementId).innerHTML = `
       <div class="success">
         ✅ ${result.message}<br>
-        新所有者: ${result.newOwner}<br>
-        报告ID: ${result.reportId}<br>
-        报告哈希: ${result.reportHash ? result.reportHash.substring(0, 16) + '...' : '未知'}
+        New owner: ${result.newOwner}<br>
+        Report ID: ${result.reportId}<br>
+        Report hash: ${result.reportHash ? result.reportHash.substring(0, 16) + '...' : 'Unknown'}
       </div>
     `;
     
@@ -346,16 +346,16 @@ async function transferBatch(batchId, transferData, resultElementId) {
   }
 }
 
-// 添加质检结果的辅助函数
+// Add quality inspection result auxiliary function
 async function addTestResult(batchId, testData, resultElementId) {
   try {
-    showLoading(resultElementId, "添加质检结果中...");
+    showLoading(resultElementId, "Adding quality inspection result...");
     const result = await apiRequest('POST', `/batch/${batchId}/test`, testData, 'processor');
     
     document.getElementById(resultElementId).innerHTML = `
       <div class="success">
         ✅ ${result.message}<br>
-        测试ID: ${result.testId}
+        Test ID: ${result.testId}
       </div>
     `;
     

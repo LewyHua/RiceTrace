@@ -3,38 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>创建新批次 - Rice Supply Chain</title>
+  <title>Create new batch - Rice Supply Chain</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
   <div class="container">
-    <h1>创建新批次</h1>
+    <h1>Create new batch</h1>
     
     <div class="form-group">
-      <label for="reportId">质检报告ID (必填)</label>
-      <input id="reportId" placeholder="从质检报告页面获取" required />
-      <small>请先在"上传质检报告"页面上传并审核通过质检报告</small>
+      <label for="reportId">Quality inspection report ID (required)</label>
+      <input id="reportId" placeholder="Get from quality inspection report page" required />
+      <small>Please upload and verify the quality inspection report on the "Upload quality inspection report" page first</small>
     </div>
 
-    <label for="location">产地 (location)</label>
-    <input id="location" placeholder="例如: Heilongjiang" />
+    <label for="location">Location (location)</label>
+    <input id="location" placeholder="For example: Heilongjiang" />
 
-    <label for="variety">品种 (variety)</label>
-    <input id="variety" placeholder="例如: Japonica" />
+    <label for="variety">Variety (variety)</label>
+    <input id="variety" placeholder="For example: Japonica" />
 
-    <label for="harvestDate">收获日期 (harvestDate)</label>
+    <label for="harvestDate">Harvest date (harvestDate)</label>
     <input id="harvestDate" type="date" placeholder="YYYY-MM-DD" />
 
-    <label for="owner">所有者 (owner)</label>
+    <label for="owner">Owner (owner)</label>
     <input id="owner" placeholder="Farmer Zhang" />
 
     <div style="display: flex; justify-content: center; margin: 16px 0;">
-      <button onclick="createBatchForm()">创建批次</button>
+      <button onclick="createBatchForm()">Create batch</button>
     </div>
     <pre class="json-box" id="createBatchResult"></pre>
-    <a href="index.html" class="card-back-link">返回批次列表</a>
+    <a href="index.html" class="card-back-link">Return to batch list</a>
   </div>
 
   <script src="common.js"></script>
@@ -43,7 +43,7 @@
       const reportId = document.getElementById("reportId").value.trim();
       
       if (!reportId) {
-        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写质检报告ID</div>`;
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ Please fill in the quality inspection report ID</div>`;
         return;
       }
 
@@ -53,7 +53,7 @@
         variety: document.getElementById("variety").value.trim(),
         harvestDate: document.getElementById("harvestDate").value,
         initialTestResult: {
-          // Oracle会自动填充这些信息，这里只提供占位数据
+          // Oracle will automatically fill in this information, here only provide placeholder data
           testId: "oracle_verified",
           testerId: "Oracle_System",
           timestamp: new Date().toISOString(),
@@ -65,16 +65,16 @@
         operator: document.getElementById("owner").value.trim()
       };
 
-      // 简单校验
+      // Simple verification
       if (!payload.location || !payload.variety || !payload.harvestDate || !payload.owner) {
-        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ 请填写所有必填字段</div>`;
+        document.getElementById("createBatchResult").innerHTML = `<div class="error">❌ Please fill in all required fields</div>`;
         return;
       }
 
       try {
         await createBatch(payload, "createBatchResult");
         
-        // 清空表单
+        // Clear form
         document.getElementById("reportId").value = '';
         document.getElementById("location").value = '';
         document.getElementById("variety").value = '';
@@ -82,7 +82,7 @@
         document.getElementById("owner").value = '';
         
       } catch (err) {
-        // 错误已经在 createBatch 函数中处理了
+        // Error has been handled in createBatch function
         console.error('Failed to create batch:', err);
       }
     }
