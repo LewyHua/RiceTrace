@@ -6,14 +6,14 @@ const { extractRole, checkRolePermission, validateRequest, validateParams, logUs
 
 const router = express.Router();
 
-// 应用全局日志中间件
+// Apply global logging middleware
 router.use(logUserAction);
 
 /**
- * 批次相关路由
+ * Batch related routes
  */
 
-// 获取批次统计信息（需要放在动态路由前面）
+// Get batch statistics (must be placed before dynamic routes)
 router.get('/batch/stats', 
   ...checkRolePermission('getAll'), 
   batchController.getBatchStats
@@ -42,69 +42,69 @@ router.get('/batch/:id/owner',
   batchController.getCurrentBatchOwner
 );
 
-// ===================== 质检报告相关路由 =====================
+// ===================== Quality inspection report related routes =====================
 
-// 上传质检报告 (所有角色都可以上传)
+// Upload quality inspection report (all roles can upload)
 router.post('/reports/upload',
-  extractRole, // 提取角色信息
-  reportController.upload.single('report'), // Multer文件上传中间件
+  extractRole, // Extract role information
+  reportController.upload.single('report'), // Multer file upload middleware
   reportController.uploadReport
 );
 
-// 获取我的报告列表
+// Get my report list
 router.get('/reports/my',
   extractRole,
   reportController.getMyReports
 );
 
-// 获取报告服务状态
+// Get report service status
 router.get('/reports/status',
   extractRole,
   reportController.getReportStatus
 );
 
-// 验证报告 (用于调试)
+// Verify report (for debugging)
 router.get('/reports/:reportId/verify',
   extractRole,
   validateParams(['reportId']),
   reportController.verifyReport
 );
 
-// 获取报告详情
+// Get report details
 router.get('/reports/:reportId',
   extractRole,
   validateParams(['reportId']),
   reportController.getReportById
 );
 
-// 管理员更新报告状态 (用于开发测试)
+// Admin update report status (for development testing)
 router.post('/reports/admin/update-status',
   extractRole,
   validateRequest(['reportId', 'status']),
   reportController.updateReportStatus
 );
 
-// 获取所有批次
+// Get all batches
 router.get('/batch', 
   ...checkRolePermission('getAll'), 
   batchController.getAllBatches
 );
 
-// 创建批次 (需要质检报告)
+// Create batch (requires quality inspection report)
 router.post('/batch', 
   ...checkRolePermission('create'),
   validateRequest(['reportId', 'location', 'variety', 'harvestDate', 'initialTestResult', 'owner', 'initialStep', 'operator']),
   batchController.createBatch
 );
 
-// 检查批次是否存在
+// Check if batch exists
 router.get('/batch/:id/exists', 
   ...checkRolePermission('getById'),
   validateParams(['id']),
   batchController.checkBatchExists
 );
 
-// 转移批次所有权 (需要质检报告)
+// Transfer batch ownership (requires quality inspection report)
 router.put('/batch/:id/transfer', 
   ...checkRolePermission('transfer'),
   validateParams(['id']),
@@ -112,15 +112,15 @@ router.put('/batch/:id/transfer',
   batchController.transferBatch
 );
 
-// 添加质检结果 (支持Oracle验证)
+// Add quality inspection result (supports Oracle verification)
 router.post('/batch/:id/test', 
   ...checkRolePermission('addTest'),
   validateParams(['id']),
-  // 注意：不强制验证testId等字段，因为Oracle模式只需要externalReportId
+  // Note: testId is not required, because Oracle mode only requires externalReportId
   batchController.addTestResult
 );
 
-// 添加加工记录
+// Add processing record
 router.post('/batch/:id/process', 
   ...checkRolePermission('addProcess'),
   validateParams(['id']),
@@ -128,7 +128,7 @@ router.post('/batch/:id/process',
   batchController.addProcessingRecord
 );
 
-// 根据ID获取批次（需要放在最后，避免与其他路由冲突）
+// Get batch by ID (must be placed at the end to avoid conflicts with other routes)
 router.get('/batch/:id', 
   ...checkRolePermission('getById'),
   validateParams(['id']),
@@ -136,31 +136,31 @@ router.get('/batch/:id',
 );
 
 /**
- * 产品相关路由
+ * Product related routes
  */
 
-// 创建产品
+// Create product
 router.post('/product', 
   ...checkRolePermission('createProduct'),
   validateRequest(['productId', 'batchId', 'packageDate', 'owner']),
   productController.createProduct
 );
 
-// 检查产品是否存在
+// Check if product exists
 router.get('/product/:id/exists', 
   ...checkRolePermission('getProduct'),
   validateParams(['id']),
   productController.checkProductExists
 );
 
-// 获取产品的完整追溯信息
+// Get full traceability information of product
 router.get('/product/:id/traceability', 
   ...checkRolePermission('getProduct'),
   validateParams(['id']),
   productController.getProductTraceability
 );
 
-// 根据ID获取产品
+// Get product by ID
 router.get('/product/:id', 
   ...checkRolePermission('getProduct'),
   validateParams(['id']),
@@ -168,52 +168,52 @@ router.get('/product/:id',
 );
 
 /**
- * 系统信息路由
+ * System information routes
  */
 
-// 健康检查
+// Health check
 router.get('/health', (req, res) => {
   res.json({
     success: true,
-    message: '大米供应链追溯系统运行正常',
+    message: 'Rice supply chain traceability system is running normally',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// API信息
+// API information
 router.get('/info', (req, res) => {
   const { getAvailableRoles, permissions } = require('../../config');
   
   res.json({
     success: true,
     api: {
-      name: '大米供应链追溯系统 API',
+      name: 'Rice supply chain traceability system API',
       version: '1.0.0',
-      description: '基于 Hyperledger Fabric 的大米供应链追溯系统',
+      description: 'Rice supply chain traceability system based on Hyperledger Fabric',
       roles: getAvailableRoles(),
       permissions: permissions,
       endpoints: {
         batch: [
-          'GET /api/batch - 获取所有批次',
-          'POST /api/batch - 创建批次',
-          'GET /api/batch/:id - 获取指定批次',
-          'GET /api/batch/:id/exists - 检查批次是否存在',
-          'PUT /api/batch/:id/transfer - 转移批次所有权',
-          'POST /api/batch/:id/test - 添加质检结果',
-          'POST /api/batch/:id/process - 添加加工记录',
-          'GET /api/batch/stats - 获取批次统计信息'
+          'GET /api/batch - Get all batches',
+          'POST /api/batch - Create batch',
+          'GET /api/batch/:id - Get specified batch',
+          'GET /api/batch/:id/exists - Check if batch exists',
+          'PUT /api/batch/:id/transfer - Transfer batch ownership',
+          'POST /api/batch/:id/test - Add quality inspection result',
+          'POST /api/batch/:id/process - Add processing record',
+          'GET /api/batch/stats - Get batch statistics'
         ],
         product: [
-          'POST /api/product - 创建产品',
-          'GET /api/product/:id - 获取产品信息',
-          'GET /api/product/:id/exists - 检查产品是否存在',
-          'GET /api/product/:id/traceability - 获取产品追溯信息'
+          'POST /api/product - Create product',
+          'GET /api/product/:id - Get product information',
+          'GET /api/product/:id/exists - Check if product exists',
+          'GET /api/product/:id/traceability - Get product traceability'
         ],
         system: [
-          'GET /api/health - 健康检查',
-          'GET /api/info - API信息'
+          'GET /api/health - Health check',
+          'GET /api/info - API information'
         ]
       }
     },

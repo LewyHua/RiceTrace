@@ -3,97 +3,97 @@ const oracleClient = require('../clients/OracleClient');
 const { errorCodes } = require('../../config');
 
 /**
- * 大米批次服务层
- * 处理与大米批次相关的所有业务逻辑
+ * Rice batch service layer
+ * Handles all business logic related to rice batches
  */
 class RiceService {
 
   /**
-   * 获取所有大米批次
-   * @param {string} role - 调用者角色
-   * @returns {Promise<Array>} 批次列表
+   * Get all rice batches
+   * @param {string} role - Caller role
+   * @returns {Promise<Array>} Batch list
    */
   async getAllBatches(role) {
     try {
       return await fabricDAO.evaluateTransaction(role, 'GetAllRiceBatches');
     } catch (error) {
-      throw new Error(`获取批次列表失败: ${error.message}`);
+      throw new Error(`Failed to get batch list: ${error.message}`);
     }
   }
 
   /**
-   * 根据ID获取大米批次
-   * @param {string} role - 调用者角色
-   * @param {string} batchId - 批次ID
-   * @returns {Promise<Object>} 批次信息
+   * Get rice batch by ID
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @returns {Promise<Object>} Batch information
    */
   async getBatchById(role, batchId) {
     if (!batchId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Batch ID cannot be empty`);
     }
 
     try {
       return await fabricDAO.evaluateTransaction(role, 'ReadRiceBatch', batchId);
     } catch (error) {
       if (error.message.includes('does not exist')) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Batch ${batchId} does not exist`);
       }
-      throw new Error(`获取批次详情失败: ${error.message}`);
+      throw new Error(`Failed to get batch details: ${error.message}`);
     }
   }
 
   /**
-   * 检查批次是否存在
-   * @param {string} role - 调用者角色
-   * @param {string} batchId - 批次ID
-   * @returns {Promise<boolean>} 是否存在
+   * Check if batch exists
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @returns {Promise<boolean>} Whether it exists
    */
   async batchExists(role, batchId) {
     if (!batchId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Batch ID cannot be empty`);
     }
 
     try {
       const result = await fabricDAO.evaluateTransaction(role, 'RiceBatchExists', batchId);
       return result === true || result === 'true';
     } catch (error) {
-      throw new Error(`检查批次存在性失败: ${error.message}`);
+      throw new Error(`Failed to check batch existence: ${error.message}`);
     }
   }
 
   /**
-   * 创建新的大米批次 (需要质检报告)
-   * @param {string} role - 调用者角色
-   * @param {Object} batchData - 批次数据
-   * @param {string} reportId - 质检报告ID
-   * @returns {Promise<Object>} 新创建的批次信息
+   * Create new rice batch (requires quality inspection report)
+   * @param {string} role - Caller role
+   * @param {Object} batchData - Batch data
+   * @param {string} reportId - Quality inspection report ID
+   * @returns {Promise<Object>} Newly created batch information
    */
   async createBatch(role, batchData, reportId) {
-    // 数据验证
+    // Data validation
     this._validateBatchData(batchData);
 
     if (!reportId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 创建批次需要提供质检报告ID`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Creating batch requires quality inspection report ID`);
     }
     
     const { location, variety, harvestDate, initialTestResult, owner, initialStep, operator } = batchData;
     
     try {
-      // 验证质检报告
-      console.log(`🔍 验证创建批次的质检报告: ${reportId}`);
+      // Verify quality inspection report
+      console.log(`Verify quality inspection report for creating batch: ${reportId}`);
       const verificationResult = await oracleClient.verifyTestReport(reportId);
       
       if (!verificationResult.success) {
-        throw new Error(`质检报告验证失败: ${verificationResult.error}`);
+        throw new Error(`Quality inspection report verification failed: ${verificationResult.error}`);
       }
 
       const reportData = verificationResult.data;
-      console.log(`✅ 质检报告验证通过: ${reportId}`);
+      console.log(`Quality inspection report verification passed: ${reportId}`);
 
-      // 生成批次ID
+      // Generate batch ID
       const batchId = this._generateBatchId();
       
-      // 调用智能合约创建批次，传入报告哈希
+      // Call smart contract to create batch, pass in report hash
       await fabricDAO.submitTransaction(
         role,
         'CreateRiceBatch',
@@ -102,14 +102,14 @@ class RiceService {
         variety,
         harvestDate,
         JSON.stringify({
-          // 完全使用Oracle验证的数据，忽略前端传入的占位数据
+          // Use Oracle verified data, ignore placeholder data from frontend
           testId: reportData.testId,
           testerId: reportData.tester,
           timestamp: reportData.testDate,
           temperature: reportData.laboratory || "N/A",
           report: reportData.notes || "Oracle verified quality report",
           result: reportData.result,
-          // Oracle验证信息
+          // Oracle verification information
           reportId: reportId,
           reportHash: reportData.fileHash,
           isVerified: true,
@@ -124,54 +124,54 @@ class RiceService {
         batchId,
         reportId,
         reportHash: reportData.fileHash,
-        message: '大米批次创建成功 (已关联质检报告)'
+        message: 'Rice batch created successfully (associated with quality inspection report)'
       };
     } catch (error) {
-      throw new Error(`创建批次失败: ${error.message}`);
+      throw new Error(`Failed to create batch: ${error.message}`);
     }
   }
 
   /**
-   * 转移批次所有权 (需要质检报告)
-   * @param {string} role - 调用者角色
-   * @param {string} batchId - 批次ID
-   * @param {Object} transferData - 转移数据
-   * @param {string} reportId - 质检报告ID
-   * @returns {Promise<Object>} 转移结果
+   * Transfer batch ownership (requires quality inspection report)
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @param {Object} transferData - Transfer data
+   * @param {string} reportId - Quality inspection report ID
+   * @returns {Promise<Object>} Transfer result
    */
   async transferBatch(role, batchId, transferData, reportId) {
     if (!batchId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Batch ID cannot be empty`);
     }
 
     if (!reportId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 转移批次需要提供质检报告ID`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Transferring batch requires quality inspection report ID`);
     }
 
     const { newOwner, operator } = transferData;
     if (!newOwner || !operator) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 新所有者和操作员信息不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: New owner and operator information cannot be empty`);
     }
 
     try {
-      // 先检查批次是否存在
+      // Check if batch exists
       const exists = await this.batchExists(role, batchId);
       if (!exists) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Batch ${batchId} does not exist`);
       }
 
-      // 验证质检报告
-      console.log(`🔍 验证转移批次的质检报告: ${reportId}`);
+      // Verify quality inspection report
+      console.log(`Verify quality inspection report for transferring batch: ${reportId}`);
       const verificationResult = await oracleClient.verifyTestReport(reportId);
       
       if (!verificationResult.success) {
-        throw new Error(`质检报告验证失败: ${verificationResult.error}`);
+        throw new Error(`Quality inspection report verification failed: ${verificationResult.error}`);
       }
 
       const reportData = verificationResult.data;
-      console.log(`✅ 质检报告验证通过: ${reportId}`);
+      console.log(`Quality inspection report verification passed: ${reportId}`);
 
-      // 执行转移（智能合约只需要基本参数，报告信息记录在中台）
+      // Execute transfer (smart contract only needs basic parameters, report information recorded in the middle)
       await fabricDAO.submitTransaction(
         role, 
         'TransferRiceBatch', 
@@ -180,11 +180,11 @@ class RiceService {
         operator
       );
       
-      // 返回更新后的批次信息
+      // Return updated batch information
       const updatedBatch = await this.getBatchById(role, batchId);
       
       return {
-        message: `批次所有权已转移至 ${updatedBatch.currentOwner} (已关联质检报告)`,
+        message: `Batch ownership transferred to ${updatedBatch.currentOwner} (associated with quality inspection report)`,
         newOwner: updatedBatch.currentOwner,
         batchId,
         reportId,
@@ -192,46 +192,46 @@ class RiceService {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      throw new Error(`转移批次失败: ${error.message}`);
+      throw new Error(`Failed to transfer batch: ${error.message}`);
     }
   }
 
   /**
-   * 添加质检结果 (支持Oracle验证)
-   * @param {string} role - 调用者角色
-   * @param {string} batchId - 批次ID
-   * @param {Object} testData - 质检数据 (可包含externalReportId)
-   * @returns {Promise<Object>} 操作结果
+   * Add test result (supports Oracle verification)
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @param {Object} testData - Test data (can contain externalReportId)
+   * @returns {Promise<Object>} Operation result
    */
   async addTestResult(role, batchId, testData) {
     if (!batchId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Batch ID cannot be empty`);
     }
 
     try {
-      // 检查批次是否存在
+      // Check if batch exists
       const exists = await this.batchExists(role, batchId);
       if (!exists) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Batch ${batchId} does not exist`);
       }
 
       let finalTestResult;
 
-      // 判断是否使用Oracle验证
+      // Check if using Oracle verification
       if (testData.externalReportId) {
-        // 使用Oracle验证外部报告
-        console.log(`正在验证外部报告: ${testData.externalReportId}`);
+        // Use Oracle to verify external report
+        console.log(`Verifying external report: ${testData.externalReportId}`);
         const verificationResult = await oracleClient.verifyTestReport(testData.externalReportId);
         
-        // 使用Oracle验证后的数据
+        // Use Oracle verified data
         finalTestResult = {
           ...verificationResult.data,
           timestamp: verificationResult.verifiedAt
         };
 
-        console.log(`✅ Oracle验证成功: ${testData.externalReportId}`);
+        console.log(`Oracle verification passed: ${testData.externalReportId}`);
       } else {
-        // 传统方式：验证用户提供的质检数据
+        // Traditional way: verify user provided test data
         this._validateTestData(testData);
         
         finalTestResult = {
@@ -242,62 +242,62 @@ class RiceService {
         };
       }
 
-      // 提交到区块链
+      // Submit to blockchain
       await fabricDAO.submitTransaction(role, 'AddTestResult', batchId, JSON.stringify(finalTestResult));
       
       return {
         message: finalTestResult.isVerified ? 
-          '质检结果已添加 (Oracle验证)' : 
-          '质检结果已添加 (手动输入)',
+          'Test result added (Oracle verification)' : 
+          'Test result added (manual input)',
         batchId,
         testId: finalTestResult.testId,
         isVerified: finalTestResult.isVerified,
         verificationSource: finalTestResult.verificationSource
       };
     } catch (error) {
-      throw new Error(`添加质检结果失败: ${error.message}`);
+      throw new Error(`Failed to add test result: ${error.message}`);
     }
   }
 
   /**
-   * 添加加工记录
-   * @param {string} role - 调用者角色
-   * @param {string} batchId - 批次ID
-   * @param {Object} processData - 加工数据
-   * @returns {Promise<Object>} 操作结果
+   * Add processing record
+   * @param {string} role - Caller role
+   * @param {string} batchId - Batch ID
+   * @param {Object} processData - Processing data
+   * @returns {Promise<Object>} Operation result
    */
   async addProcessingRecord(role, batchId, processData) {
     if (!batchId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 批次ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Batch ID cannot be empty`);
     }
 
     const { step, operator } = processData;
     if (!step || !operator) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 加工步骤和操作员信息不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Processing step and operator information cannot be empty`);
     }
 
     try {
-      // 检查批次是否存在
+      // Check if batch exists
       const exists = await this.batchExists(role, batchId);
       if (!exists) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 批次 ${batchId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Batch ${batchId} does not exist`);
       }
 
       await fabricDAO.submitTransaction(role, 'AddProcessingRecord', batchId, step, operator);
       
       return {
-        message: '加工记录已添加',
+        message: 'Processing record added',
         batchId,
         step,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      throw new Error(`添加加工记录失败: ${error.message}`);
+      throw new Error(`Failed to add processing record: ${error.message}`);
     }
   }
 
   /**
-   * 验证批次数据
+   * Validate batch data
    * @private
    */
   _validateBatchData(batchData) {
@@ -305,17 +305,17 @@ class RiceService {
     const missing = required.filter(field => !batchData[field]);
     
     if (missing.length > 0) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 缺少必填字段: ${missing.join(', ')}`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Missing required fields: ${missing.join(', ')}`);
     }
 
     // 验证日期格式
     if (!this._isValidDate(batchData.harvestDate)) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 收获日期格式无效`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Invalid harvest date format`);
     }
   }
 
   /**
-   * 验证质检数据
+   * Validate test data
    * @private
    */
   _validateTestData(testData) {
@@ -323,12 +323,12 @@ class RiceService {
     const missing = required.filter(field => !testData[field]);
     
     if (missing.length > 0) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 缺少必填字段: ${missing.join(', ')}`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Missing required fields: ${missing.join(', ')}`);
     }
   }
 
   /**
-   * 生成批次ID
+   * Generate batch ID
    * @private
    */
   _generateBatchId() {
@@ -336,14 +336,14 @@ class RiceService {
   }
 
   /**
-   * 获取Oracle服务状态
-   * @returns {Object} Oracle服务状态
+   * Get Oracle service status
+   * @returns {Object} Oracle service status
    */
   async getOracleStatus() {
     try {
       return oracleClient.getServiceStatus();
     } catch (error) {
-      throw new Error(`获取Oracle状态失败: ${error.message}`);
+      throw new Error(`Failed to get Oracle status: ${error.message}`);
     }
   }
 
@@ -368,7 +368,7 @@ class RiceService {
       const reportService = require('./ReportService');
       const reportDetail = await reportService.verifyAndFetchReportDetail(reportId);
       
-      console.log(`🔄 Processing step and transfer: ${step} from ${fromOperator} to ${toOperator}`);
+      console.log(`Processing step and transfer: ${step} from ${fromOperator} to ${toOperator}`);
       
       // Call the new smart contract method
       const result = await fabricDAO.submitTransaction(
@@ -381,11 +381,11 @@ class RiceService {
         JSON.stringify(reportDetail)
       );
 
-      console.log(`✅ Step completed and batch transferred successfully`);
+      console.log(`Step completed and batch transferred successfully`);
       return result;
 
     } catch (error) {
-      console.error('❌ Failed to complete step and transfer:', error.message);
+      console.error('Failed to complete step and transfer:', error.message);
       // Re-throw the original error to preserve specific error messages
       throw error;
     }

@@ -2,28 +2,28 @@ const multer = require('multer');
 const reportService = require('../services/ReportService');
 const { asyncHandler, createError } = require('../middleware/errorMiddleware');
 
-// 配置 Multer 用于内存存储
+// Configure Multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024, // 5MB file size limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(createError.validation(`不支持的文件类型: ${file.mimetype}`), false);
+      cb(createError.validation(`Unsupported file type: ${file.mimetype}`), false);
     }
   }
 });
 
 /**
- * 上传质检报告
+ * Upload test report
  */
 const uploadReport = asyncHandler(async (req, res) => {
   if (!req.file) {
-    throw createError.validation('请选择要上传的文件');
+    throw createError.validation('Please select a file to upload');
   }
 
   const uploaderInfo = {
@@ -31,19 +31,19 @@ const uploadReport = asyncHandler(async (req, res) => {
     userId: req.headers['x-user-id'] || null
   };
 
-  console.log(`📤 ${req.role} 正在上传质检报告: ${req.file.originalname}`);
+  console.log(`${req.role} is uploading test report: ${req.file.originalname}`);
 
   const result = await reportService.uploadReport(req.file, uploaderInfo);
 
   res.json({
     success: true,
     data: result,
-    message: '质检报告上传成功'
+    message: 'Test report uploaded successfully'
   });
 });
 
 /**
- * 验证质检报告
+ * Verify test report
  */
 const verifyReport = asyncHandler(async (req, res) => {
   const { reportId } = req.params;
@@ -53,12 +53,12 @@ const verifyReport = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: result.data,
-    message: '报告验证成功'
+    message: 'Report verified successfully'
   });
 });
 
 /**
- * 获取我的报告列表
+ * Get my report list
  */
 const getMyReports = asyncHandler(async (req, res) => {
   const reports = await reportService.getReportsByUploader(req.role);
@@ -72,7 +72,7 @@ const getMyReports = asyncHandler(async (req, res) => {
 });
 
 /**
- * 获取报告服务状态
+ * Get report service status
  */
 const getReportStatus = asyncHandler(async (req, res) => {
   const status = reportService.getServiceStatus();
@@ -83,12 +83,12 @@ const getReportStatus = asyncHandler(async (req, res) => {
       ...status,
       systemTime: new Date().toISOString()
     },
-    message: '报告服务状态获取成功'
+    message: 'Report service status retrieved successfully'
   });
 });
 
 /**
- * 根据ID获取报告详情
+ * Get report details by ID
  */
 const getReportById = asyncHandler(async (req, res) => {
   const { reportId } = req.params;
@@ -98,22 +98,22 @@ const getReportById = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: result.data,
-    message: '报告详情获取成功'
+    message: 'Report details retrieved successfully'
   });
 });
 
 /**
- * 管理员更新报告状态 (用于开发测试)
+ * Admin update report status (for development testing)
  */
 const updateReportStatus = asyncHandler(async (req, res) => {
   const { reportId, status } = req.body;
 
   if (!reportId || !status) {
-    throw new Error('报告ID和状态不能为空');
+    throw new Error('Report ID and status cannot be empty');
   }
 
   if (!['APPROVED', 'REJECTED', 'PENDING'].includes(status)) {
-    throw new Error('无效的状态值');
+    throw new Error('Invalid status value');
   }
 
   const result = await reportService.updateReportStatus(reportId, status);
@@ -121,12 +121,12 @@ const updateReportStatus = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: result,
-    message: `报告状态已更新为 ${status}`
+    message: `Report status updated to ${status}`
   });
 });
 
 module.exports = {
-  upload, // Multer中间件
+  upload, // Multer middleware
   uploadReport,
   verifyReport,
   getMyReports,

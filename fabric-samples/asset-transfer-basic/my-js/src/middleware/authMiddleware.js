@@ -1,104 +1,104 @@
 const { hasPermission, getAvailableRoles, errorCodes } = require('../../config');
 
 /**
- * 权限验证中间件
- * 统一处理角色验证和权限检查
+ * Authentication middleware
+ * Handles role validation and permission checks
  */
 
 /**
- * 角色提取中间件 - 从请求中提取用户角色
+ * Role extraction middleware - Extract user role from request
  */
 function extractRole(req, res, next) {
-  // 优先级：Header > Query Parameter > Default
+  // Priority: Header > Query Parameter > Default
   const role = req.headers['x-user-role'] || req.query.role || null;
   
   if (!role) {
     return res.status(400).json({
       error: errorCodes.ROLE_MISSING,
-      message: '缺少角色信息，请在请求头中提供 X-User-Role 或在查询参数中提供 role',
+      message: 'Role information is missing, please provide X-User-Role in the request header or role in the query parameter',
       availableRoles: getAvailableRoles()
     });
   }
 
-  // 验证角色是否有效 (admin角色用于管理功能)
+  // Validate role (admin role for management functionality)
   const validRoles = [...getAvailableRoles(), 'admin'];
   if (!validRoles.includes(role)) {
     return res.status(400).json({
       error: errorCodes.ROLE_MISSING,
-      message: `无效的角色: ${role}`,
+      message: `Invalid role: ${role}`,
       availableRoles: validRoles
     });
   }
 
-  // 将角色信息添加到请求对象
+  // Add role information to request object
   req.role = role;
   req.userInfo = {
     role,
     timestamp: new Date().toISOString()
   };
 
-  console.log(`🔑 用户角色: ${role} | 端点: ${req.method} ${req.path}`);
+  console.log(`User role: ${role} | Endpoint: ${req.method} ${req.path}`);
   next();
 }
 
 /**
- * 权限检查中间件工厂函数
- * @param {string} requiredPermission - 需要的权限
- * @returns {Function} 中间件函数
+ * Permission check middleware factory function
+ * @param {string} requiredPermission - Required permission
+ * @returns {Function} Middleware function
  */
 function requirePermission(requiredPermission) {
   return (req, res, next) => {
-    // 确保角色已被提取
+    // Ensure role has been extracted
     if (!req.role) {
       return res.status(401).json({
         error: errorCodes.ROLE_MISSING,
-        message: '用户角色信息缺失，请先通过角色验证'
+        message: 'User role information is missing, please verify the role first'
       });
     }
 
-    // 检查权限
+    // Check permission
     if (!hasPermission(req.role, requiredPermission)) {
-      console.log(`❌ 权限拒绝: 角色 ${req.role} 尝试访问 ${requiredPermission}`);
+      console.log(`Permission denied: role ${req.role} attempted to access ${requiredPermission}`);
       return res.status(403).json({
         error: errorCodes.PERMISSION_DENIED,
-        message: `角色 '${req.role}' 没有权限执行此操作`,
+        message: `Role '${req.role}' does not have permission to perform this operation`,
         requiredPermission,
         userRole: req.role
       });
     }
 
-    console.log(`✅ 权限验证通过: 角色 ${req.role} 访问 ${requiredPermission}`);
+    console.log(`Permission verified: role ${req.role} accessed ${requiredPermission}`);
     next();
   };
 }
 
 /**
- * 组合的权限验证中间件 - 同时提取角色和检查权限
- * @param {string} requiredPermission - 需要的权限
- * @returns {Array} 中间件数组
+ * Combined permission verification middleware - Extract role and check permission
+ * @param {string} requiredPermission - Required permission
+ * @returns {Array} Middleware array
  */
 function checkRolePermission(requiredPermission) {
   return [extractRole, requirePermission(requiredPermission)];
 }
 
 /**
- * 角色信息记录中间件 - 记录用户操作日志
+ * Role information recording middleware - Record user operation logs
  */
 function logUserAction(req, res, next) {
   const originalSend = res.send;
   
   res.send = function(data) {
-    // 记录操作结果
+    // Record operation result
     const isSuccess = res.statusCode >= 200 && res.statusCode < 300;
     const logLevel = isSuccess ? '✅' : '❌';
     
-    console.log(`${logLevel} 操作完成: 角色=${req.role} | 方法=${req.method} | 路径=${req.path} | 状态=${res.statusCode}`);
+    console.log(`${logLevel} Operation completed: role=${req.role} | method=${req.method} | path=${req.path} | status=${res.statusCode}`);
     
     if (req.body && Object.keys(req.body).length > 0) {
-      console.log(`📝 请求数据:`, { ...req.body, role: req.role });
+      console.log(`Request data:`, { ...req.body, role: req.role });
     }
 
-    // 调用原始的send方法
+    // Call the original send method
     originalSend.call(this, data);
   };
 
@@ -106,15 +106,15 @@ function logUserAction(req, res, next) {
 }
 
 /**
- * 请求验证中间件 - 验证必需的请求参数
- * @param {Array} requiredFields - 必需的字段列表
- * @returns {Function} 中间件函数
+ * Request validation middleware - Validate required request parameters
+ * @param {Array} requiredFields - Required field list
+ * @returns {Function} Middleware function
  */
 function validateRequest(requiredFields = []) {
   return (req, res, next) => {
     const missing = [];
     
-    // 检查请求体中的必需字段
+    // Check required fields in request body
     for (const field of requiredFields) {
       if (req.body && req.body[field] === undefined) {
         missing.push(field);
@@ -124,7 +124,7 @@ function validateRequest(requiredFields = []) {
     if (missing.length > 0) {
       return res.status(400).json({
         error: errorCodes.VALIDATION_ERROR,
-        message: `缺少必需的字段: ${missing.join(', ')}`,
+        message: `Missing required fields: ${missing.join(', ')}`,
         requiredFields,
         provided: req.body ? Object.keys(req.body) : []
       });
@@ -135,15 +135,15 @@ function validateRequest(requiredFields = []) {
 }
 
 /**
- * 参数验证中间件 - 验证路径参数
- * @param {Array} requiredParams - 必需的路径参数
- * @returns {Function} 中间件函数
+ * Parameter validation middleware - Validate path parameters
+ * @param {Array} requiredParams - Required path parameters
+ * @returns {Function} Middleware function
  */
 function validateParams(requiredParams = []) {
   return (req, res, next) => {
     const missing = [];
     
-    // 检查路径参数
+    // Check path parameters
     for (const param of requiredParams) {
       if (!req.params[param]) {
         missing.push(param);
@@ -153,7 +153,7 @@ function validateParams(requiredParams = []) {
     if (missing.length > 0) {
       return res.status(400).json({
         error: errorCodes.VALIDATION_ERROR,
-        message: `缺少必需的路径参数: ${missing.join(', ')}`,
+        message: `Missing required path parameters: ${missing.join(', ')}`,
         requiredParams,
         provided: Object.keys(req.params)
       });

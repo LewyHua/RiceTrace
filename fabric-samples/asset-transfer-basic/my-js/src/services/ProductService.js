@@ -2,74 +2,74 @@ const fabricDAO = require('../dao/FabricDAO');
 const { errorCodes } = require('../../config');
 
 /**
- * 产品服务层
- * 处理与产品相关的所有业务逻辑
+ * Product service layer
+ * Handles all business logic related to products
  */
 class ProductService {
 
   /**
-   * 创建产品
-   * @param {string} role - 调用者角色
-   * @param {Object} productData - 产品数据
-   * @returns {Promise<Object>} 创建结果
+   * Create product
+   * @param {string} role - Caller role
+   * @param {Object} productData - Product data
+   * @returns {Promise<Object>} Creation result
    */
   async createProduct(role, productData) {
-    // 验证产品数据
+    // Validate product data
     this._validateProductData(productData);
     
     const { productId, batchId, packageDate, owner } = productData;
     
     try {
-      // 先检查批次是否存在
+      // Check if batch exists
       const batchExists = await fabricDAO.evaluateTransaction(role, 'RiceBatchExists', batchId);
       if (!(batchExists === true || batchExists === 'true')) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 关联的批次 ${batchId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Associated batch ${batchId} does not exist`);
       }
 
-      // 创建产品
+      // Create product
       await fabricDAO.submitTransaction(role, 'CreateProduct', productId, batchId, packageDate, owner);
       
       return {
-        message: '产品创建成功',
+        message: 'Product created successfully',
         productId,
         batchId,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      throw new Error(`创建产品失败: ${error.message}`);
+      throw new Error(`Failed to create product: ${error.message}`);
     }
   }
 
   /**
-   * 根据ID获取产品及其批次信息
-   * @param {string} role - 调用者角色
-   * @param {string} productId - 产品ID
-   * @returns {Promise<Object>} 产品和批次信息
+   * Get product and batch information by ID
+   * @param {string} role - Caller role
+   * @param {string} productId - Product ID
+   * @returns {Promise<Object>} Product and batch information
    */
   async getProductById(role, productId) {
     if (!productId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 产品ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Product ID cannot be empty`);
     }
 
     try {
       return await fabricDAO.evaluateTransaction(role, 'ReadProduct', productId);
     } catch (error) {
       if (error.message.includes('does not exist')) {
-        throw new Error(`${errorCodes.NOT_FOUND}: 产品 ${productId} 不存在`);
+        throw new Error(`${errorCodes.NOT_FOUND}: Product ${productId} does not exist`);
       }
-      throw new Error(`获取产品信息失败: ${error.message}`);
+      throw new Error(`Failed to get product information: ${error.message}`);
     }
   }
 
   /**
-   * 检查产品是否存在
-   * @param {string} role - 调用者角色
-   * @param {string} productId - 产品ID
-   * @returns {Promise<boolean>} 是否存在
+   * Check if product exists
+   * @param {string} role - Caller role
+   * @param {string} productId - Product ID
+   * @returns {Promise<boolean>} Whether it exists
    */
   async productExists(role, productId) {
     if (!productId) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 产品ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Product ID cannot be empty`);
     }
 
     try {
@@ -84,17 +84,17 @@ class ProductService {
   }
 
   /**
-   * 获取产品的完整追溯信息
-   * @param {string} role - 调用者角色
-   * @param {string} productId - 产品ID
-   * @returns {Promise<Object>} 完整的追溯信息
+   * Get full traceability information of product
+   * @param {string} role - Caller role
+   * @param {string} productId - Product ID
+   * @returns {Promise<Object>} Full traceability information
    */
   async getProductTraceability(role, productId) {
     try {
-      // 获取产品信息（已包含批次信息）
+      // Get product information (already contains batch information)
       const productInfo = await this.getProductById(role, productId);
       
-      // 添加追溯摘要
+      // Add traceability summary
       const traceability = {
         ...productInfo,
         traceabilityInfo: {
@@ -106,12 +106,12 @@ class ProductService {
 
       return traceability;
     } catch (error) {
-      throw new Error(`获取产品追溯信息失败: ${error.message}`);
+      throw new Error(`Failed to get product traceability information: ${error.message}`);
     }
   }
 
   /**
-   * 验证产品数据
+   * Validate product data
    * @private
    */
   _validateProductData(productData) {
@@ -119,22 +119,22 @@ class ProductService {
     const missing = required.filter(field => !productData[field]);
     
     if (missing.length > 0) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 缺少必填字段: ${missing.join(', ')}`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Missing required fields: ${missing.join(', ')}`);
     }
 
-    // 验证包装日期格式
+    // Validate package date format
     if (!this._isValidDate(productData.packageDate)) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 包装日期格式无效`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Invalid package date format`);
     }
 
-    // 验证产品ID格式（简单格式检查）
+    // Validate product ID format (simple format check)
     if (!/^[a-zA-Z0-9_-]+$/.test(productData.productId)) {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 产品ID格式无效，只能包含字母、数字、下划线和横线`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Invalid product ID format, only letters, numbers, underscores and hyphens are allowed`);
     }
   }
 
   /**
-   * 计算总步骤数
+   * Calculate total steps
    * @private
    */
   _calculateTotalSteps(productInfo) {
@@ -145,7 +145,7 @@ class ProductService {
   }
 
   /**
-   * 获取最后更新时间
+   * Get last update time
    * @private
    */
   _getLastUpdateTime(productInfo) {
@@ -153,7 +153,7 @@ class ProductService {
     
     const times = [];
     
-    // 收集所有时间戳
+    // Collect all timestamps
     if (productInfo.batch.ownerHistory) {
       times.push(...productInfo.batch.ownerHistory.map(h => h.timestamp));
     }
@@ -167,26 +167,26 @@ class ProductService {
       times.push(productInfo.product.packageDate);
     }
 
-    // 返回最新时间
+    // Return latest time
     return times.length > 0 ? new Date(Math.max(...times.map(t => new Date(t)))).toISOString() : null;
   }
 
   /**
-   * 获取验证状态
+   * Get verification status
    * @private
    */
   _getVerificationStatus(productInfo) {
     if (!productInfo.batch || !productInfo.batch.testResults || productInfo.batch.testResults.length === 0) {
-      return 'PENDING'; // 待验证
+      return 'PENDING'; // Pending verification
     }
 
-    // 检查最近的测试结果
+    // Check latest test result
     const latestTest = productInfo.batch.testResults[productInfo.batch.testResults.length - 1];
     return latestTest.result === 'Passed' ? 'VERIFIED' : 'FAILED';
   }
 
   /**
-   * 验证日期格式
+   * Validate date format
    * @private
    */
   _isValidDate(dateString) {

@@ -2,12 +2,12 @@ const productService = require('../services/ProductService');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 
 /**
- * 产品控制器
- * 处理所有与产品相关的HTTP请求
+ * Product controller
+ * Handles all HTTP requests related to products
  */
 
 /**
- * 创建产品
+ * Create product
  * POST /api/product
  */
 const createProduct = asyncHandler(async (req, res) => {
@@ -29,7 +29,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 /**
- * 根据ID获取产品信息
+ * Get product by ID
  * GET /api/product/:id
  */
 const getProductById = asyncHandler(async (req, res) => {
@@ -46,7 +46,7 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 /**
- * 获取产品的完整追溯信息
+ * Get product traceability
  * GET /api/product/:id/traceability
  */
 const getProductTraceability = asyncHandler(async (req, res) => {
@@ -63,7 +63,7 @@ const getProductTraceability = asyncHandler(async (req, res) => {
 });
 
 /**
- * 检查产品是否存在
+ * Check if product exists
  * GET /api/product/:id/exists
  */
 const checkProductExists = asyncHandler(async (req, res) => {
