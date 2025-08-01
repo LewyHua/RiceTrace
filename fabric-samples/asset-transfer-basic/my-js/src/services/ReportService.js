@@ -126,28 +126,28 @@ class ReportService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          throw new Error(`${errorCodes.NOT_FOUND}: 报告不存在: ${reportId}`);
+          throw new Error(`Report not found: Report ID ${reportId} does not exist`);
         }
-        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库查询失败: ${error.message}`);
+        throw new Error(`Database query failed: ${error.message}`);
       }
 
-      // 检查报告状态，提供用户友好的错误信息
+      // Check report status and provide user-friendly error messages
       if (data.status !== 'APPROVED') {
         let statusMessage = '';
         switch (data.status) {
           case 'PENDING':
-            statusMessage = '报告正在等待审核，请耐心等待管理员审批';
+            statusMessage = 'Report is pending review, please wait for admin approval';
             break;
           case 'REJECTED':
-            statusMessage = '报告已被拒绝，请重新上传符合要求的质检报告';
+            statusMessage = 'Report has been rejected, please upload a compliant quality report';
             break;
           default:
-            statusMessage = `报告状态异常: ${data.status}`;
+            statusMessage = `Report status is invalid: ${data.status}`;
         }
-        throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: ${statusMessage} (报告ID: ${reportId})`);
+        throw new Error(`Oracle verification failed: ${statusMessage} (Report ID: ${reportId})`);
       }
 
-      console.log(`✅ 报告验证通过: ${reportId}`);
+      console.log(`✅ Report verification passed: ${reportId}`);
 
       return {
         success: true,
@@ -164,7 +164,7 @@ class ReportService {
       };
 
     } catch (error) {
-      console.error('❌ 报告验证失败:', error.message);
+      console.error('❌ Report verification failed:', error.message);
       throw error;
     }
   }

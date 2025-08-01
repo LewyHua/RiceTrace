@@ -1,74 +1,76 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>上传质检报告 - RiceTrace</title>
+    <title>Upload Quality Report - RiceTrace</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>上传质检报告</h1>
+        <h1>Upload Quality Report</h1>
         
         <div class="form-container">
             <form id="uploadForm">
                 <div class="form-group">
-                    <label for="userRole">当前角色</label>
-                    <select id="userRole" required>
-                        <option value="farmer">农户</option>
-                        <option value="processor">加工商</option>
-                        <option value="consumer">消费者</option>
-                    </select>
+                    <label for="userRole">Current Role</label>
+                    <input type="text" id="userRole" readonly style="background: #f5f5f5;">
                 </div>
 
                 <div class="form-group">
-                    <label for="reportFile">选择质检报告文件</label>
+                    <label for="reportFile">Select Quality Report File</label>
                     <input type="file" id="reportFile" accept=".pdf,.jpg,.jpeg,.png" required>
-                    <small>支持格式：PDF、JPG、PNG，最大5MB</small>
+                    <small>Supported formats: PDF, JPG, PNG, max 5MB</small>
                 </div>
 
-                <button type="submit">上传报告</button>
+                <button type="submit">Upload Report</button>
             </form>
 
             <div id="uploadResult"></div>
         </div>
 
         <div class="section">
-            <h2>我的报告列表</h2>
-            <button onclick="loadMyReports()">刷新列表</button>
+            <h2>My Reports List</h2>
+            <button onclick="loadMyReports()">Refresh List</button>
             <div id="reportsList"></div>
         </div>
 
         <div class="navigation">
-            <a href="index.html">返回首页</a>
+            <a href="index.html">Back to Home</a>
         </div>
     </div>
 
     <script src="common.js"></script>
     <script>
-        // 上传表单处理
+        // Initialize page with current role
+        document.addEventListener('DOMContentLoaded', function() {
+            initRoleSwitcher();
+            const currentRole = getCurrentRole();
+            document.getElementById('userRole').value = ROLE_NAMES[currentRole] || currentRole;
+        });
+
+        // Upload form handler
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const fileInput = document.getElementById('reportFile');
-            const roleSelect = document.getElementById('userRole');
             const resultDiv = document.getElementById('uploadResult');
             
             if (!fileInput.files[0]) {
-                showError('uploadResult', '请选择要上传的文件');
+                showError('uploadResult', 'Please select a file to upload');
                 return;
             }
 
             const file = fileInput.files[0];
-            const role = roleSelect.value;
+            const role = getCurrentRole(); // Use current role from localStorage
 
-            // 验证文件大小
+            // Validate file size
             if (file.size > 5 * 1024 * 1024) {
-                showError('uploadResult', '文件大小不能超过5MB');
+                showError('uploadResult', 'File size cannot exceed 5MB');
                 return;
             }
 
-            showLoading('uploadResult', '正在上传报告...');
+            showLoading('uploadResult', 'Uploading report...');
 
             try {
                 const formData = new FormData();
@@ -87,33 +89,33 @@
                 if (result.success) {
                     resultDiv.innerHTML = `
                         <div class="success">
-                            <h3>✅ 报告上传成功</h3>
-                            <p><strong>报告ID:</strong> ${result.data.reportId}</p>
-                            <p><strong>文件哈希:</strong> ${result.data.fileHash.substring(0, 16)}...</p>
-                            <p><strong>状态:</strong> ${result.data.status}</p>
-                            <p><strong>提示:</strong> 报告需要审核通过后才能使用</p>
+                            <h3>✅ Report uploaded successfully</h3>
+                            <p><strong>Report ID:</strong> ${result.data.reportId}</p>
+                            <p><strong>File Hash:</strong> ${result.data.fileHash.substring(0, 16)}...</p>
+                            <p><strong>Status:</strong> ${result.data.status}</p>
+                            <p><strong>Note:</strong> Report needs to be approved before use</p>
                         </div>
                     `;
                     
-                    // 清空表单
-                    document.getElementById('uploadForm').reset();
+                    // Clear form
+                    document.getElementById('reportFile').value = '';
                     
-                    // 刷新报告列表
+                    // Refresh report list
                     setTimeout(() => loadMyReports(), 1000);
                 } else {
-                    showError('uploadResult', result.message || '上传失败');
+                    showError('uploadResult', result.message || 'Upload failed');
                 }
             } catch (error) {
-                showError('uploadResult', `上传失败: ${error.message}`);
+                showError('uploadResult', `Upload failed: ${error.message}`);
             }
         });
 
-        // 加载我的报告列表
+        // Load my reports list
         async function loadMyReports() {
-            const role = document.getElementById('userRole').value;
+            const role = getCurrentRole();
             const listDiv = document.getElementById('reportsList');
             
-            showLoading('reportsList', '加载报告列表...');
+            showLoading('reportsList', 'Loading reports list...');
 
             try {
                 const response = await fetch(`${baseURL}/reports/my`, {
@@ -126,16 +128,16 @@
 
                 if (result.success) {
                     if (result.data.length === 0) {
-                        listDiv.innerHTML = '<p>暂无报告</p>';
+                        listDiv.innerHTML = '<p>No reports found</p>';
                         return;
                     }
 
-                    let html = '<table><thead><tr><th>文件名</th><th>状态</th><th>上传时间</th><th>报告ID</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>File Name</th><th>Status</th><th>Upload Time</th><th>Report ID</th></tr></thead><tbody>';
                     
                     result.data.forEach(report => {
                         const statusClass = report.status === 'APPROVED' ? 'approved' : 
                                           report.status === 'REJECTED' ? 'rejected' : 'pending';
-                        const createTime = new Date(report.created_at).toLocaleString('zh-CN');
+                        const createTime = new Date(report.created_at).toLocaleString('en-US');
                         
                         html += `
                             <tr>
@@ -150,14 +152,14 @@
                     html += '</tbody></table>';
                     listDiv.innerHTML = html;
                 } else {
-                    showError('reportsList', result.message || '加载失败');
+                    showError('reportsList', result.message || 'Loading failed');
                 }
             } catch (error) {
-                showError('reportsList', `加载失败: ${error.message}`);
+                showError('reportsList', `Loading failed: ${error.message}`);
             }
         }
 
-        // 页面加载时加载报告列表
+        // Load reports list when page loads
         window.addEventListener('load', () => {
             loadMyReports();
         });

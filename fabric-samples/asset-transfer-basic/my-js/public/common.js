@@ -310,11 +310,10 @@ async function createBatch(batchData, resultElementId) {
     
     document.getElementById(resultElementId).innerHTML = `
       <div class="success">
-        ✅ 批次创建成功！<br>
-        批次ID: ${result.data.batchId}<br>
-        报告ID: ${result.data.reportId}<br>
-        报告哈希: ${result.data.reportHash ? result.data.reportHash.substring(0, 16) + '...' : '未知'}<br>
-        <a href="detail.html?batchId=${result.data.batchId}">查看详情</a>
+        ✅ Batch created successfully!<br>
+        Batch ID: ${result.data.batchId}<br>
+        Report ID: ${result.data.reportId}<br>
+        Report Hash: ${result.data.reportHash ? result.data.reportHash.substring(0, 16) + '...' : 'Unknown'}<br>
       </div>
     `;
     

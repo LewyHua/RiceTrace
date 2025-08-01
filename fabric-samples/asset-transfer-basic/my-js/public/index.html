@@ -48,10 +48,8 @@
           <button onclick="location.href='admin-reports.html'" class="btn">Review Reports</button>
         </div>
         <div class="action-card">
-          <h3>All Actions</h3>
-          <button onclick="location.href='upload-report.html'" class="btn">Upload Reports</button>
-          <button onclick="location.href='create.html'" class="btn">Create Batch</button>
-          <button onclick="showTransferSection()" class="btn">Transfer & Process</button>
+          <h3>System Test</h3>
+          <button onclick="location.href='test-system.html'" class="btn" style="background: #4caf50;">System Test</button>
         </div>
       </div>
     </div>
@@ -93,7 +91,6 @@
           <label>Processing Step:</label>
           <select id="step" required>
             <option value="">Select Step</option>
-            <option value="Harvested">Harvested</option>
             <option value="Transporting">Transporting</option>
             <option value="Warehousing">Warehousing</option>
             <option value="QualityInspection">Quality Inspection</option>
@@ -112,10 +109,7 @@
       </form>
     </div>
 
-    <!-- System Test (Admin only) -->
-    <div data-role="admin" class="section">
-      <button onclick="location.href='test-system.html'" class="btn" style="background: #4caf50;">System Test</button>
-    </div>
+
   </div>
 
   <script src="common.js"></script>
