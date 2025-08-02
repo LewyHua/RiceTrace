@@ -2,6 +2,7 @@ const express = require('express');
 const batchController = require('../controllers/batchController');
 const productController = require('../controllers/productController');
 const reportController = require('../controllers/reportController');
+const cacheController = require('../controllers/cacheController');
 const { extractRole, checkRolePermission, validateRequest, validateParams, logUserAction } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -165,6 +166,41 @@ router.get('/product/:id',
   ...checkRolePermission('getProduct'),
   validateParams(['id']),
   productController.getProductById
+);
+
+/**
+ * Cache management routes (for debugging and maintenance)
+ */
+
+// Get cache statistics
+router.get('/cache/stats',
+  extractRole,
+  cacheController.getCacheStats
+);
+
+// Test cache connection
+router.get('/cache/test',
+  extractRole,
+  cacheController.testCacheConnection
+);
+
+// Clear all cache entries
+router.delete('/cache/clear',
+  extractRole,
+  cacheController.clearAllCache
+);
+
+// Invalidate batch list cache for all roles
+router.delete('/cache/batch-list',
+  extractRole,
+  cacheController.invalidateBatchList
+);
+
+// Invalidate cache for specific batch
+router.delete('/cache/batch/:id',
+  extractRole,
+  validateParams(['id']),
+  cacheController.invalidateBatchCache
 );
 
 /**

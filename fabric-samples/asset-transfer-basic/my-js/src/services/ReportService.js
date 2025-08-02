@@ -19,8 +19,13 @@ class ReportService {
       },
     });
 
-    // Initialize Supabase client
-    this.supabaseClient = createClient(supabase.url, supabase.anonKey, supabase.options);
+    // Initialize Supabase client with error handling for missing configuration
+    if (!supabase.url || !supabase.anonKey) {
+      console.warn('Supabase configuration missing. Some features may not work properly.');
+      this.supabaseClient = null;
+    } else {
+      this.supabaseClient = createClient(supabase.url, supabase.anonKey, supabase.options);
+    }
   }
 
   /**
@@ -63,7 +68,19 @@ class ReportService {
       // Generate access URL
       const fileUrl = `https://pub-${cloudflareR2.accountId}.r2.dev/${fileKey}`;
 
-      // Save metadata to Supabase
+      // Save metadata to Supabase (if configured)
+      if (!this.supabaseClient) {
+        console.warn('Supabase not configured, skipping database save');
+        return {
+          success: true,
+          reportId: `temp_${Date.now()}`,
+          fileHash: fileHash,
+          fileUrl: fileUrl,
+          status: 'PENDING',
+          message: 'Quality inspection report uploaded successfully (database not configured)'
+        };
+      }
+
       const reportData = {
         file_hash: fileHash,
         file_name: file.originalname,
@@ -116,6 +133,12 @@ class ReportService {
       }
 
       console.log(`Verify report: ${reportId}`);
+
+      // Check if Supabase is configured
+      if (!this.supabaseClient) {
+        console.warn('Supabase not configured, cannot verify report');
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: Database not configured`);
+      }
 
       // Query report information from Supabase
       const { data, error } = await this.supabaseClient
@@ -223,6 +246,12 @@ class ReportService {
    * @private
    */
   async _uploadToR2(key, buffer, contentType) {
+    // Check if R2 is configured
+    if (!cloudflareR2.accountId || !cloudflareR2.accessKeyId || !cloudflareR2.secretAccessKey) {
+      console.warn('Cloudflare R2 not configured, skipping file upload');
+      return;
+    }
+
     const command = new PutObjectCommand({
       Bucket: cloudflareR2.bucketName,
       Key: key,
@@ -250,6 +279,11 @@ class ReportService {
       console.log(`Update report status: ${reportId} -> ${status}`);
 
       // Update report status in Supabase
+      if (!this.supabaseClient) {
+        console.warn('Supabase not configured, cannot update report status');
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: Database not configured`);
+      }
+
       const { data, error } = await this.supabaseClient
         .from('quality_reports')
         .update({ 

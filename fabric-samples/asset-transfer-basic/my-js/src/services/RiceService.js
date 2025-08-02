@@ -1,5 +1,6 @@
 const fabricDAO = require('../dao/FabricDAO');
 const oracleClient = require('../clients/OracleClient');
+const cacheService = require('./CacheService');
 const { errorCodes } = require('../../config');
 
 /**
@@ -15,7 +16,19 @@ class RiceService {
    */
   async getAllBatches(role) {
     try {
-      return await fabricDAO.evaluateTransaction(role, 'GetAllRiceBatches');
+      // Try to get from cache first
+      const cachedBatches = await cacheService.getBatchList(role);
+      if (cachedBatches !== null) {
+        return cachedBatches;
+      }
+
+      // If not in cache, get from blockchain
+      const batches = await fabricDAO.evaluateTransaction(role, 'GetAllRiceBatches');
+      
+      // Cache the result
+      await cacheService.setBatchList(role, batches);
+      
+      return batches;
     } catch (error) {
       throw new Error(`Failed to get batch list: ${error.message}`);
     }
@@ -33,7 +46,19 @@ class RiceService {
     }
 
     try {
-      return await fabricDAO.evaluateTransaction(role, 'ReadRiceBatch', batchId);
+      // Try to get from cache first
+      const cachedBatch = await cacheService.getBatchDetail(batchId);
+      if (cachedBatch !== null) {
+        return cachedBatch;
+      }
+
+      // If not in cache, get from blockchain
+      const batch = await fabricDAO.evaluateTransaction(role, 'ReadRiceBatch', batchId);
+      
+      // Cache the result
+      await cacheService.setBatchDetail(batchId, batch);
+      
+      return batch;
     } catch (error) {
       if (error.message.includes('does not exist')) {
         throw new Error(`${errorCodes.NOT_FOUND}: Batch ${batchId} does not exist`);
@@ -54,8 +79,20 @@ class RiceService {
     }
 
     try {
+      // Try to get from cache first
+      const cachedExists = await cacheService.getBatchExists(batchId);
+      if (cachedExists !== null) {
+        return cachedExists;
+      }
+
+      // If not in cache, check from blockchain
       const result = await fabricDAO.evaluateTransaction(role, 'RiceBatchExists', batchId);
-      return result === true || result === 'true';
+      const exists = result === true || result === 'true';
+      
+      // Cache the result
+      await cacheService.setBatchExists(batchId, exists);
+      
+      return exists;
     } catch (error) {
       throw new Error(`Failed to check batch existence: ${error.message}`);
     }
@@ -120,6 +157,9 @@ class RiceService {
         operator
       );
 
+      // Invalidate cache after creating new batch
+      await cacheService.invalidateBatchList();
+
       return {
         batchId,
         reportId,
@@ -179,6 +219,9 @@ class RiceService {
         newOwner, 
         operator
       );
+      
+      // Invalidate cache after transferring batch
+      await cacheService.invalidateBatchCache(batchId);
       
       // Return updated batch information
       const updatedBatch = await this.getBatchById(role, batchId);
@@ -245,6 +288,9 @@ class RiceService {
       // Submit to blockchain
       await fabricDAO.submitTransaction(role, 'AddTestResult', batchId, JSON.stringify(finalTestResult));
       
+      // Invalidate cache after adding test result
+      await cacheService.invalidateBatchCache(batchId);
+      
       return {
         message: finalTestResult.isVerified ? 
           'Test result added (Oracle verification)' : 
@@ -284,6 +330,9 @@ class RiceService {
       }
 
       await fabricDAO.submitTransaction(role, 'AddProcessingRecord', batchId, step, operator);
+      
+      // Invalidate cache after adding processing record
+      await cacheService.invalidateBatchCache(batchId);
       
       return {
         message: 'Processing record added',
@@ -380,6 +429,9 @@ class RiceService {
         step,
         JSON.stringify(reportDetail)
       );
+
+      // Invalidate cache after completing step and transfer
+      await cacheService.invalidateBatchCache(batchId);
 
       console.log(`Step completed and batch transferred successfully`);
       return result;

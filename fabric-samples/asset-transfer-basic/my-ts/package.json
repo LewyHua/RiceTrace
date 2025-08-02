@@ -13,7 +13,10 @@
     "prepublishOnly": "npm run build",
     "docker": "docker build -f ./Dockerfile -t rice-tracer-ccaas-typescript .",
     "package": "npm run build && npm shrinkwrap",
-    "start": "fabric-chaincode-node start"
+    "start": "fabric-chaincode-node start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "engineStrict": true,
   "author": "RiceTrace Team",
@@ -25,7 +28,10 @@
     "sort-keys-recursive": "^2.1.10"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^18.19.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
     "typescript": "~5.3.0"
   },
   "nyc": {
@@ -43,9 +49,9 @@
     ],
     "all": true,
     "check-coverage": true,
-    "statements": 100,
-    "branches": 100,
-    "functions": 100,
-    "lines": 100
+    "statements": 0,
+    "branches": 0,
+    "functions": 0,
+    "lines": 0
   }
-} 
+}

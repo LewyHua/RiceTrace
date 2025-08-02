@@ -99,6 +99,29 @@ const cloudflareR2 = {
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`
 };
 
+// Redis configuration
+const redis = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD,
+  db: process.env.REDIS_DB || 0,
+  // Cache configuration
+  cache: {
+    // Cache TTL in seconds
+    ttl: {
+      batchList: 300,      // 5 minutes for batch list
+      batchDetail: 600,    // 10 minutes for batch detail
+      batchExists: 300     // 5 minutes for batch existence check
+    },
+    // Cache key prefixes
+    keys: {
+      batchList: 'batch:list',
+      batchDetail: 'batch:detail',
+      batchExists: 'batch:exists'
+    }
+  }
+};
+
 // Supabase configuration
 const supabase = {
   url: process.env.SUPABASE_URL,
@@ -174,6 +197,7 @@ module.exports = {
   permissions,
   oracleServices,
   cloudflareR2,
+  redis,
   supabase,
   errorCodes,
   
