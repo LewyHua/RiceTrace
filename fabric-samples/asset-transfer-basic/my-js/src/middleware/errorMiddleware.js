@@ -1,15 +1,15 @@
 const { errorCodes } = require('../../config');
 
 /**
- * 统一错误处理中间件
- * 处理所有类型的错误并返回标准化的错误响应
+ * Error handling middleware
+ * Handles all types of errors and returns standardized error responses
  */
 
 /**
- * 全局错误处理中间件
+ * Global error handling middleware
  */
 function errorHandler(err, req, res, next) {
-  console.error('🚨 错误详情:', {
+  console.error('Error details:', {
     message: err.message,
     stack: err.stack,
     url: req.url,
@@ -18,10 +18,10 @@ function errorHandler(err, req, res, next) {
     timestamp: new Date().toISOString()
   });
 
-  // 解析错误类型和消息
+  // Parse error type and message
   const errorInfo = parseError(err);
   
-  // 发送标准化错误响应
+  // Send standardized error response
   res.status(errorInfo.statusCode).json({
     error: errorInfo.code,
     message: errorInfo.message,
@@ -33,14 +33,47 @@ function errorHandler(err, req, res, next) {
 }
 
 /**
- * 解析错误信息
- * @param {Error} err - 错误对象
- * @returns {Object} 解析后的错误信息
+ * Parse error information
+ * @param {Error} err - Error object
+ * @returns {Object} Parsed error information
  */
 function parseError(err) {
-  const message = err.message || '未知错误';
+  const message = err.message || 'Unknown error';
   
-  // 检查是否是我们定义的错误代码
+  console.log('Parsing error:', message); // Debug log
+  
+  // Handle database query errors for invalid report IDs (must be first to catch specific DB errors)
+  if (message.includes('Database query failed') && message.includes('invalid input syntax for type uuid')) {
+    console.log('Matched UUID format error'); // Debug log
+    return {
+      code: errorCodes.VALIDATION_ERROR,
+      message: 'Invalid report ID format. Report ID must be a valid UUID.',
+      statusCode: 400
+    };
+  }
+  
+  // Handle general database query failures
+  if (message.includes('Database query failed')) {
+    return {
+      code: errorCodes.VALIDATION_ERROR, 
+      message: 'Invalid request: ' + message.replace('Database query failed: ', ''),
+      statusCode: 400
+    };
+  }
+  
+  // Handle specific Oracle verification error messages
+  if (message.includes('Oracle verification failed') || 
+      message.includes('Report not found') ||
+      message.includes('Report is pending review') ||
+      message.includes('Report has been rejected')) {
+    return {
+      code: errorCodes.ORACLE_VERIFICATION_FAILED,
+      message: message,
+      statusCode: 400
+    };
+  }
+  
+  // Check if it's one of our defined error codes
   if (message.includes(errorCodes.PERMISSION_DENIED)) {
     return {
       code: errorCodes.PERMISSION_DENIED,
@@ -78,15 +111,23 @@ function parseError(err) {
       code: errorCodes.FABRIC_ERROR,
       message: message.replace(`${errorCodes.FABRIC_ERROR}: `, ''),
       statusCode: 500,
-      details: 'Hyperledger Fabric 网络连接或操作失败'
+      details: 'Hyperledger Fabric network connection or operation failed'
+    };
+  }
+  
+  if (message.includes(errorCodes.ORACLE_VERIFICATION_FAILED)) {
+    return {
+      code: errorCodes.ORACLE_VERIFICATION_FAILED,
+      message: message.replace(`${errorCodes.ORACLE_VERIFICATION_FAILED}: `, ''),
+      statusCode: 400
     };
   }
 
-  // 处理特定的Node.js错误
+  // Handle specific Node.js errors
   if (err.code === 'ENOENT') {
     return {
       code: errorCodes.NOT_FOUND,
-      message: '文件或资源不存在',
+      message: 'File or resource not found',
       statusCode: 404
     };
   }
@@ -94,25 +135,25 @@ function parseError(err) {
   if (err.code === 'ECONNREFUSED') {
     return {
       code: errorCodes.FABRIC_ERROR,
-      message: '无法连接到 Fabric 网络',
+      message: 'Cannot connect to Fabric network',
       statusCode: 503,
-      details: 'Fabric 网络可能未启动或配置错误'
+      details: 'Fabric network may not be started or configured incorrectly'
     };
   }
 
-  // 默认内部服务器错误
+  // Default internal server error  
   return {
     code: errorCodes.INTERNAL_ERROR,
-    message: process.env.NODE_ENV === 'development' ? message : '内部服务器错误',
+    message: message, // Always show the actual error message now
     statusCode: 500
   };
 }
 
 /**
- * 异步错误包装器
- * 捕获异步路由处理器中的错误并传递给错误处理中间件
- * @param {Function} fn - 异步路由处理函数
- * @returns {Function} 包装后的函数
+ * Asynchronous error wrapper
+ * Capture errors in asynchronous route handlers and pass them to the error handling middleware
+ * @param {Function} fn - Asynchronous route handler function
+ * @returns {Function} Wrapped function
  */
 function asyncHandler(fn) {
   return (req, res, next) => {
@@ -121,16 +162,16 @@ function asyncHandler(fn) {
 }
 
 /**
- * 404 错误处理中间件
+ * 404 error handling middleware
  */
 function notFoundHandler(req, res, next) {
-  const error = new Error(`路由 ${req.method} ${req.path} 不存在`);
+  const error = new Error(`Route ${req.method} ${req.path} not found`);
   error.statusCode = 404;
   next(error);
 }
 
 /**
- * 业务逻辑错误生成器
+ * Business logic error generator
  */
 class BusinessError extends Error {
   constructor(code, message, statusCode = 400) {
@@ -142,7 +183,7 @@ class BusinessError extends Error {
 }
 
 /**
- * 创建特定类型的错误
+ * Create specific type of error
  */
 const createError = {
   validation: (message) => new BusinessError(errorCodes.VALIDATION_ERROR, message, 400),

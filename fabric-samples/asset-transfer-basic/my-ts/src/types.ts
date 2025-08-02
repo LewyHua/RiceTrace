@@ -5,16 +5,16 @@
 import { Object, Property } from 'fabric-contract-api';
 
 /**
- * 机构类型枚举
+ * Organization type enumeration
  */
 export enum OrganizationType {
-    FARM = 1,           // 农场
-    MIDDLEMAN_TESTER = 2, // 中间商/测试机构
-    CONSUMER = 3        // 消费者
+    FARM = 1,           // Farm
+    MIDDLEMAN_TESTER = 2, // Middleman/tester
+    CONSUMER = 3        // Consumer
 }
 
 /**
- * 机构信息
+ * Organization information
  */
 @Object()
 export class OrganizationInfo {
@@ -28,38 +28,61 @@ export class OrganizationInfo {
     public orgName: string = '';
 }
 
+
+
 /**
- * 所有权转移记录
+ * Generic report structure for recording evidence of each process step
  */
 @Object()
-export class OwnerTransfer {
+export class ReportDetail {
     @Property()
-    public from: string = '';
+    public reportId: string = '';
 
     @Property()
-    public to: string = '';
+    public reportType: string = ''; // Report type: HarvestLog, ShippingManifest, QualityTest, ProcessingRecord, etc.
 
     @Property()
-    public timestamp: string = ''; // ISO8601格式
+    public reportHash: string = ''; // Hash of the off-chain file
+
+    @Property()
+    public summary: string = ''; // Key information summary
+
+    @Property()
+    public isVerified: boolean = false;
+
+    @Property()
+    public verificationSource?: string;
+
+    @Property()
+    public verificationTimestamp?: string;
+
+    @Property()
+    public notes?: string;
 }
 
 /**
- * 加工流程记录
+ * History event record - unified record of ownership transfer and processing
  */
 @Object()
-export class ProcessingRecord {
+export class HistoryEvent {
     @Property()
-    public step: string = '';
+    public timestamp: string = ''; // ISO8601 format
 
     @Property()
-    public timestamp: string = ''; // ISO8601格式
+    public from: string = ''; // Transfer source
 
     @Property()
-    public operator: string = ''; // 操作人或机构
+    public to: string = ''; // Transfer destination
+
+    @Property()
+    public step: string = ''; // Current step: Harvested, Transporting, QualityInspection, Processing, Packaged, etc.
+
+    @Property('report', 'ReportDetail')
+    public report: ReportDetail = new ReportDetail();
 }
 
 /**
- * 质检信息结构
+ * Test result structure - retained for backward compatibility
  */
 @Object()
 export class TestResult {
@@ -81,7 +104,7 @@ export class TestResult {
     @Property()
     public result: string = '';
 
-    // Oracle 验证相关字段
+    // Oracle verification related fields
     @Property()
     public isVerified: boolean = false;
 
@@ -105,15 +128,21 @@ export class TestResult {
 
     @Property()
     public notes?: string;
+
+    @Property()
+    public reportHash?: string;
+
+    @Property()
+    public reportId?: string;
 }
 
 /**
- * 水稻批次结构
+ * Rice batch structure - unified event sourcing model
  */
 @Object()
 export class RiceBatch {
     @Property()
-    public docType: string = 'riceBatch'; // 固定值 "riceBatch"
+    public docType: string = 'riceBatch';
 
     @Property()
     public batchId: string = '';
@@ -127,29 +156,23 @@ export class RiceBatch {
     @Property()
     public harvestDate: string = '';
 
-    @Property('testResults', 'TestResult[]')
-    public testResults: TestResult[] = [];
-
-    @Property('ownerHistory', 'OwnerTransfer[]')
-    public ownerHistory: OwnerTransfer[] = [];
-
-    @Property('processHistory', 'ProcessingRecord[]')
-    public processHistory: ProcessingRecord[] = [];
-
     @Property()
     public currentOwner: string = '';
 
     @Property()
-    public processingStep: string = '';
+    public currentState: string = '';
+
+    @Property('history', 'HistoryEvent[]')
+    public history: HistoryEvent[] = [];
 }
 
 /**
- * 产品结构
+ * Product structure
  */
 @Object()
 export class Product {
     @Property()
-    public docType: string = 'product'; // 固定值 "product"
+    public docType: string = 'product'; // Fixed value "product"
 
     @Property()
     public productId: string = '';
@@ -165,7 +188,7 @@ export class Product {
 }
 
 /**
- * 产品和批次联合查询结果
+ * Combined query result of product and batch
  */
 @Object()
 export class ProductWithBatch {

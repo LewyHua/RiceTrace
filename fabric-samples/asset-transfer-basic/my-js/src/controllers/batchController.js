@@ -2,12 +2,12 @@ const riceService = require('../services/RiceService');
 const { asyncHandler } = require('../middleware/errorMiddleware');
 
 /**
- * 大米批次控制器
- * 处理所有与大米批次相关的HTTP请求
+ * Rice batch controller
+ * Handles all HTTP requests related to rice batches
  */
 
 /**
- * 获取所有批次
+ * Get all batches
  * GET /api/batch
  */
 const getAllBatches = asyncHandler(async (req, res) => {
@@ -23,7 +23,7 @@ const getAllBatches = asyncHandler(async (req, res) => {
 });
 
 /**
- * 根据ID获取批次
+ * Get batch by ID
  * GET /api/batch/:id
  */
 const getBatchById = asyncHandler(async (req, res) => {
@@ -40,7 +40,7 @@ const getBatchById = asyncHandler(async (req, res) => {
 });
 
 /**
- * 检查批次是否存在
+ * Check if batch exists
  * GET /api/batch/:id/exists
  */
 const checkBatchExists = asyncHandler(async (req, res) => {
@@ -57,14 +57,14 @@ const checkBatchExists = asyncHandler(async (req, res) => {
 });
 
 /**
- * 创建新批次 (需要质检报告)
+ * Create new batch (requires test report)
  * POST /api/batch
  */
 const createBatch = asyncHandler(async (req, res) => {
   const { reportId } = req.body;
   
   if (!reportId) {
-    throw new Error('创建批次需要提供质检报告ID (reportId)');
+    throw new Error('Creating batch requires a report ID (reportId)');
   }
 
   const batchData = {
@@ -94,7 +94,7 @@ const createBatch = asyncHandler(async (req, res) => {
 });
 
 /**
- * 转移批次所有权 (需要质检报告)
+ * Transfer batch ownership (requires test report)
  * PUT /api/batch/:id/transfer
  */
 const transferBatch = asyncHandler(async (req, res) => {
@@ -102,7 +102,7 @@ const transferBatch = asyncHandler(async (req, res) => {
   const { reportId } = req.body;
 
   if (!reportId) {
-    throw new Error('转移批次需要提供质检报告ID (reportId)');
+    throw new Error('Transferring batch requires a report ID (reportId)');
   }
 
   const transferData = {
@@ -120,7 +120,7 @@ const transferBatch = asyncHandler(async (req, res) => {
 });
 
 /**
- * 添加质检结果
+ * Add test result
  * POST /api/batch/:id/test
  */
 const addTestResult = asyncHandler(async (req, res) => {
@@ -144,7 +144,7 @@ const addTestResult = asyncHandler(async (req, res) => {
 });
 
 /**
- * 添加加工记录
+ * Add processing record
  * POST /api/batch/:id/process
  */
 const addProcessingRecord = asyncHandler(async (req, res) => {
@@ -164,13 +164,13 @@ const addProcessingRecord = asyncHandler(async (req, res) => {
 });
 
 /**
- * 获取批次统计信息（扩展功能）
+ * Get batch statistics (extended functionality)
  * GET /api/batch/stats
  */
 const getBatchStats = asyncHandler(async (req, res) => {
   const batches = await riceService.getAllBatches(req.role);
   
-  // 计算统计信息
+  // Calculate statistics
   const stats = {
     totalBatches: batches.length,
     statusDistribution: {},
@@ -179,15 +179,15 @@ const getBatchStats = asyncHandler(async (req, res) => {
   };
 
   batches.forEach(batch => {
-    // 状态分布
+    // Status distribution
     const status = batch.processingStep || 'Unknown';
     stats.statusDistribution[status] = (stats.statusDistribution[status] || 0) + 1;
     
-    // 品种分布
+    // Variety distribution
     const variety = batch.variety || 'Unknown';
     stats.varietyDistribution[variety] = (stats.varietyDistribution[variety] || 0) + 1;
     
-    // 月度创建统计
+    // Monthly creation statistics
     if (batch.harvestDate) {
       const month = new Date(batch.harvestDate).toISOString().substring(0, 7); // YYYY-MM
       stats.monthlyCreation[month] = (stats.monthlyCreation[month] || 0) + 1;
@@ -203,7 +203,7 @@ const getBatchStats = asyncHandler(async (req, res) => {
 });
 
 /**
- * 获取Oracle服务状态
+ * Get Oracle service status
  */
 const getOracleStatus = asyncHandler(async (req, res) => {
   const status = await riceService.getOracleStatus();
@@ -214,7 +214,61 @@ const getOracleStatus = asyncHandler(async (req, res) => {
       ...status,
       systemTime: new Date().toISOString()
     },
-    message: 'Oracle服务状态获取成功'
+    message: 'Oracle service status retrieved successfully'
+  });
+});
+
+/**
+ * Complete step and transfer batch - new unified endpoint
+ * POST /api/v2/batch/:id/event
+ */
+const completeStepAndTransfer = asyncHandler(async (req, res) => {
+  const { id: batchId } = req.params;
+  const { fromOperator, toOperator, step, reportId } = req.body;
+  
+  // Validate required fields
+  if (!fromOperator || !toOperator || !step || !reportId) {
+    throw new Error('All fields are required: fromOperator, toOperator, step, reportId');
+  }
+  
+  console.log(`${req.role} completing step: ${step} for batch ${batchId}`);
+  
+  const result = await riceService.completeStepAndTransfer(
+    req.role,
+    batchId,
+    fromOperator,
+    toOperator,
+    step,
+    reportId
+  );
+  
+  res.json({
+    success: true,
+    data: result,
+    batchId,
+    step,
+    fromOperator,
+    toOperator,
+    role: req.role,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * Get current batch owner for auto-fill
+ * GET /api/batch/:id/owner
+ */
+const getCurrentBatchOwner = asyncHandler(async (req, res) => {
+  const { id: batchId } = req.params;
+  
+  const currentOwner = await riceService.getCurrentBatchOwner(req.role, batchId);
+  
+  res.json({
+    success: true,
+    data: { currentOwner },
+    batchId,
+    role: req.role,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -227,5 +281,7 @@ module.exports = {
   addTestResult,
   addProcessingRecord,
   getBatchStats,
-  getOracleStatus
+  getOracleStatus,
+  completeStepAndTransfer,
+  getCurrentBatchOwner
 }; 

@@ -2,25 +2,25 @@ const { oracleServices, errorCodes } = require('../../config');
 const reportService = require('../services/ReportService');
 
 /**
- * Oracle 客户端
- * 负责与外部数据源进行交互，验证和获取可信数据
+ * Oracle Client
+ * Responsible for interacting with external data sources, verifying and obtaining trusted data
  */
 class OracleClient {
 
   /**
-   * 验证质检报告 (通过内部ReportService)
-   * @param {string} reportId - 报告ID
-   * @returns {Promise<Object>} 验证结果
+   * Verify test report (using internal ReportService)
+   * @param {string} reportId - Report ID
+   * @returns {Promise<Object>} Verification result
    */
   async verifyTestReport(reportId) {
     if (!reportId || typeof reportId !== 'string') {
-      throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID不能为空`);
+      throw new Error(`${errorCodes.VALIDATION_ERROR}: Report ID is required`);
     }
 
     try {
-      console.log(`🔍 Oracle开始验证报告: ${reportId}`);
+      console.log(`Oracle start to verify report: ${reportId}`);
 
-      // 使用内部ReportService验证报告
+      // Use internal ReportService to verify report
       const verificationResult = await reportService.verifyReport(reportId);
       
       if (!verificationResult.success) {
@@ -29,17 +29,17 @@ class OracleClient {
 
       const reportData = verificationResult.data;
       
-      // 标准化数据格式以兼容原有逻辑
+      // Standardize data format to be compatible with existing logic
       const standardizedData = {
         testId: reportData.reportId,
-        result: 'PASSED', // 能通过验证的报告都视为PASSED
+        result: 'PASSED', // Reports that pass verification are considered PASSED
         tester: reportData.uploadedBy,
         testDate: reportData.createdAt,
         laboratory: 'Internal QC System',
         certificationNumber: reportData.reportId,
-        notes: `文件哈希: ${reportData.fileHash}`,
+        notes: `File hash: ${reportData.fileHash}`,
         
-        // Oracle特有字段
+        // Oracle-specific fields
         isVerified: true,
         verificationSource: 'RiceTrace-ReportService',
         externalReportId: reportData.reportId,
@@ -47,7 +47,7 @@ class OracleClient {
         fileUrl: reportData.fileUrl
       };
 
-      console.log(`✅ Oracle验证成功: ${reportId}`);
+      console.log(`Oracle verification successful: ${reportId}`);
 
       return {
         success: true,
@@ -58,41 +58,41 @@ class OracleClient {
       };
 
     } catch (error) {
-      console.error(`❌ Oracle验证失败: ${error.message}`);
+      console.error(`Oracle verification failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 验证测试报告数据格式
-   * @param {Object} data - API返回的原始数据
-   * @returns {Object} 标准化的测试数据
+   * Verify test report data format
+   * @param {Object} data - Original data returned by API
+   * @returns {Object} Standardized test data
    * @private
    */
   _validateTestReportData(data) {
     if (!data || typeof data !== 'object') {
-      throw new Error(`${errorCodes.ORACLE_ERROR}: 无效的API响应格式`);
+      throw new Error(`${errorCodes.ORACLE_ERROR}: Invalid API response format`);
     }
 
-    // 必需字段检查
+    // Required field check
     const requiredFields = ['reportId', 'testResult', 'tester', 'testDate'];
     for (const field of requiredFields) {
       if (!data[field]) {
-        throw new Error(`${errorCodes.ORACLE_ERROR}: API响应缺少必需字段: ${field}`);
+        throw new Error(`${errorCodes.ORACLE_ERROR}: API response missing required field: ${field}`);
       }
     }
 
-    // 标准化数据格式
+    // Standardize data format
     return {
       testId: data.reportId,
-      result: data.testResult.toUpperCase(), // 标准化为大写
+      result: data.testResult.toUpperCase(), // Standardize to uppercase
       tester: data.tester,
       testDate: this._validateAndFormatDate(data.testDate),
       laboratory: data.laboratory || 'Unknown',
       certificationNumber: data.certificationNumber || '',
       notes: data.notes || '',
       
-      // Oracle特有字段
+      // Oracle-specific fields
       isVerified: true,
       verificationSource: 'NationalFoodSafetyAPI',
       externalReportId: data.reportId
@@ -100,22 +100,22 @@ class OracleClient {
   }
 
   /**
-   * 验证并格式化日期
-   * @param {string} dateString - 日期字符串
-   * @returns {string} ISO格式日期
+   * Verify and format date
+   * @param {string} dateString - Date string
+   * @returns {string} ISO format date
    * @private
    */
   _validateAndFormatDate(dateString) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      throw new Error(`${errorCodes.ORACLE_ERROR}: 无效的日期格式: ${dateString}`);
+      throw new Error(`${errorCodes.ORACLE_ERROR}: Invalid date format: ${dateString}`);
     }
     return date.toISOString();
   }
 
   /**
-   * 异步等待
-   * @param {number} ms - 等待毫秒数
+   * Asynchronous wait
+   * @param {number} ms - Wait milliseconds
    * @returns {Promise<void>}
    * @private
    */
@@ -124,8 +124,8 @@ class OracleClient {
   }
 
   /**
-   * 获取Oracle服务状态
-   * @returns {Object} 服务状态信息
+   * Get Oracle service status
+   * @returns {Object} Service status information
    */
   getServiceStatus() {
     return {
@@ -138,6 +138,6 @@ class OracleClient {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 const oracleClient = new OracleClient();
 module.exports = oracleClient; 

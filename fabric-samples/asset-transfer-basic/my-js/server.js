@@ -4,77 +4,77 @@ const { env, validateConfig } = require('./config');
 const routes = require('./src/routes');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorMiddleware');
 
-// 验证配置
+// Validate configuration
 validateConfig();
 
 const app = express();
 
-// ==================== 中间件配置 ====================
+// ==================== Middleware configuration ====================
 
-// CORS 配置
+// CORS configuration
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true
 }));
 
-// 基础中间件
+// Basic middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 静态文件服务
+// Static file service
 app.use(express.static('public'));
 
-// 请求日志
+// Request log
 app.use((req, res, next) => {
-  console.log(`📨 ${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - ${req.ip}`);
   next();
 });
 
-// ==================== 路由配置 ====================
+// ==================== Route configuration ====================
 
-// API 路由
+// API route
 app.use('/api', routes);
 
-// 根路径重定向到 API 信息
+// Root path redirect to API information
 app.get('/', (req, res) => {
   res.redirect('/api/info');
 });
 
-// ==================== 错误处理 ====================
+// ==================== Error handling ====================
 
-// 404 处理
+// 404 handling
 app.use(notFoundHandler);
 
-// 全局错误处理
+// Global error handling
 app.use(errorHandler);
 
-// ==================== 服务器启动 ====================
+// ==================== Server start ====================
 
 const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
-  console.log('🚀 大米供应链追溯系统启动成功!');
-  console.log(`📍 服务器地址: http://localhost:${PORT}`);
-  console.log(`🌐 API 信息: http://localhost:${PORT}/api/info`);
-  console.log(`💚 健康检查: http://localhost:${PORT}/api/health`);
-  console.log(`📚 前端界面: http://localhost:${PORT}/`);
-  console.log(`🔧 环境: ${env.NODE_ENV}`);
+  console.log('Rice traceability system started successfully!');
+  console.log(`Server address: http://localhost:${PORT}`);
+  console.log(`API information: http://localhost:${PORT}/api/info`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Frontend interface: http://localhost:${PORT}/`);
+  console.log(`Environment: ${env.NODE_ENV}`);
   console.log('=' .repeat(50));
 });
 
-// 优雅关闭
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🛑 收到 SIGTERM 信号，正在优雅关闭服务器...');
+  console.log('Received SIGTERM signal, shutting down gracefully...');
   server.close(() => {
-    console.log('✅ 服务器已关闭');
+    console.log('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 收到 SIGINT 信号，正在优雅关闭服务器...');
+  console.log('Received SIGINT signal, shutting down gracefully...');
   server.close(() => {
-    console.log('✅ 服务器已关闭');
+    console.log('Server closed');
     process.exit(0);
   });
 });

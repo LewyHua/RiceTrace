@@ -1,22 +1,292 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>选择身份</title>
+  <title>RiceTrace - Supply Chain Traceability System</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>请选择您的身份</h1>
-    <div class="role-buttons">
-      <button onclick="location.href='upload-report.html'">上传质检报告</button>
-      <button onclick="location.href='admin-reports.html'" style="background: #9c27b0;">报告审核</button>
-      <button onclick="location.href='farmer.html'">农户</button>
-      <button onclick="location.href='processor.html'">加工/质检</button>
-      <button onclick="location.href='consumer.html'">消费者</button>
-      <button onclick="location.href='review.html'">审查</button>
-      <button onclick="location.href='test-system.html'" style="background: #4caf50;">系统测试</button>
+    <h1>RiceTrace - Rice Supply Chain Traceability</h1>
+    
+    <!-- Farmer Actions -->
+    <div data-role="farmer" class="section">
+      <h2>Farmer Operations</h2>
+      <div class="action-cards">
+        <div class="action-card">
+          <h3>Upload Reports</h3>
+          <button onclick="location.href='upload-report.html'" class="btn">Upload Quality Report</button>
+        </div>
+        <div class="action-card">
+          <h3>Create Batch</h3>
+          <button onclick="location.href='create.html'" class="btn">Create New Batch</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Processor Actions -->
+    <div data-role="processor" class="section">
+      <h2>Processor Operations</h2>
+      <div class="action-cards">
+        <div class="action-card">
+          <h3>Upload Reports</h3>
+          <button onclick="location.href='upload-report.html'" class="btn">Upload Quality Report</button>
+        </div>
+        <div class="action-card">
+          <h3>Transfer Batch</h3>
+          <button onclick="showTransferSection()" class="btn">Transfer & Process</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div data-role="admin" class="section">
+      <h2>Admin Operations</h2>
+      <div class="action-cards">
+        <div class="action-card">
+          <h3>Report Review</h3>
+          <button onclick="location.href='admin-reports.html'" class="btn">Review Reports</button>
+        </div>
+        <div class="action-card">
+          <h3>System Test</h3>
+          <button onclick="location.href='test-system.html'" class="btn" style="background: #4caf50;">System Test</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal View Section -->
+    <div data-role="farmer processor consumer" class="section">
+      <h2>View & Track</h2>
+      <div class="view-section">
+        <div class="view-controls">
+          <button onclick="loadAllBatches()" class="btn">Load All Batches</button>
+          <input type="text" id="batchIdSearch" placeholder="Enter Batch ID">
+          <button onclick="loadBatchById()" class="btn">Search Batch</button>
+        </div>
+        <div id="batchDisplay"></div>
+      </div>
+    </div>
+
+    <!-- Transfer Section (Initially Hidden) -->
+    <div id="transferSection" data-role="processor admin" class="section hidden">
+      <h2>Transfer & Process Batch</h2>
+      <form id="transferForm">
+        <div class="form-group">
+          <label>Batch ID:</label>
+          <input type="text" id="transferBatchId" required>
+          <button type="button" onclick="loadCurrentOwner()">Load Current Owner</button>
+        </div>
+        
+        <div class="form-group">
+          <label>From Operator:</label>
+          <input type="text" id="fromOperator" required readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>To Operator:</label>
+          <input type="text" id="toOperator" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Processing Step:</label>
+          <select id="step" required>
+            <option value="">Select Step</option>
+            <option value="Transporting">Transporting</option>
+            <option value="Warehousing">Warehousing</option>
+            <option value="QualityInspection">Quality Inspection</option>
+            <option value="Processing">Processing</option>
+            <option value="Packaging">Packaging</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Report ID:</label>
+          <input type="text" id="reportId" required>
+          <small>Upload report first, then enter the report ID here</small>
+        </div>
+        
+        <button type="submit" class="btn">Complete Step & Transfer</button>
+      </form>
+    </div>
+
+
   </div>
+
+  <script src="common.js"></script>
+  <script>
+    // Initialize role switcher on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      initRoleSwitcher();
+    });
+
+    function showTransferSection() {
+      document.getElementById('transferSection').classList.remove('hidden');
+      document.getElementById('transferSection').scrollIntoView({behavior: 'smooth'});
+    }
+
+    async function loadCurrentOwner() {
+      const batchId = document.getElementById('transferBatchId').value;
+      if (!batchId) {
+        alert('Please enter Batch ID first');
+        return;
+      }
+
+      try {
+        const result = await apiRequest('GET', `/batch/${batchId}/owner`);
+        document.getElementById('fromOperator').value = result.data.currentOwner;
+      } catch (error) {
+        showError('transferSection', error);
+      }
+    }
+
+    async function loadAllBatches() {
+      showLoading('batchDisplay', 'Loading batches...');
+      try {
+        const result = await apiRequest('GET', '/batch');
+        const batchesHTML = renderBatchTable(result.data);
+        document.getElementById('batchDisplay').innerHTML = batchesHTML;
+      } catch (error) {
+        showError('batchDisplay', error);
+      }
+    }
+
+    async function loadBatchById() {
+      const batchId = document.getElementById('batchIdSearch').value;
+      if (!batchId) {
+        alert('Please enter Batch ID');
+        return;
+      }
+
+      showLoading('batchDisplay', 'Loading batch...');
+      try {
+        const result = await apiRequest('GET', `/batch/${batchId}`);
+        const batchHTML = renderBatchDetail(result.data);
+        document.getElementById('batchDisplay').innerHTML = batchHTML;
+      } catch (error) {
+        showError('batchDisplay', error);
+      }
+    }
+
+    function renderBatchTable(batches) {
+      if (!batches || batches.length === 0) {
+        return '<p>No batch data available</p>';
+      }
+
+      let tableHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Batch ID</th>
+              <th>Origin</th>
+              <th>Variety</th>
+              <th>Harvest Date</th>
+              <th>Current Owner</th>
+              <th>Current State</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      batches.forEach(batch => {
+        tableHTML += `
+          <tr>
+            <td>${batch.batchId}</td>
+            <td>${batch.origin || '-'}</td>
+            <td>${batch.variety || '-'}</td>
+            <td>${batch.harvestDate || '-'}</td>
+            <td>${batch.currentOwner || '-'}</td>
+            <td>${batch.currentState || '-'}</td>
+            <td>
+              <button onclick="viewBatchHistory('${batch.batchId}')" class="btn btn-small">View History</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tableHTML += '</tbody></table>';
+      return tableHTML;
+    }
+
+    function renderBatchDetail(batch) {
+      let detailHTML = `
+        <div class="batch-detail">
+          <h3>Batch Details: ${batch.batchId}</h3>
+          <div class="detail-grid">
+            <div><strong>Origin:</strong> ${batch.origin}</div>
+            <div><strong>Variety:</strong> ${batch.variety}</div>
+            <div><strong>Harvest Date:</strong> ${batch.harvestDate}</div>
+            <div><strong>Current Owner:</strong> ${batch.currentOwner}</div>
+            <div><strong>Current State:</strong> ${batch.currentState}</div>
+          </div>
+      `;
+
+      if (batch.history && batch.history.length > 0) {
+        detailHTML += '<h4>History Events:</h4><div class="history-events">';
+        batch.history.forEach((event, index) => {
+          detailHTML += `
+            <div class="history-event">
+              <div class="event-header">
+                <strong>Step ${index + 1}: ${event.step}</strong>
+                <span class="event-time">${new Date(event.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="event-details">
+                <div>From: ${event.from || 'Initial'} → To: ${event.to}</div>
+                <div>Report: ${event.report.reportType} (ID: ${event.report.reportId})</div>
+                <div>Summary: ${event.report.summary}</div>
+                <div>Verified: ${event.report.isVerified ? '✅' : '❌'} by ${event.report.verificationSource || 'N/A'}</div>
+              </div>
+            </div>
+          `;
+        });
+        detailHTML += '</div>';
+      }
+
+      detailHTML += '</div>';
+      return detailHTML;
+    }
+
+    async function viewBatchHistory(batchId) {
+      showLoading('batchDisplay', 'Loading batch history...');
+      try {
+        const result = await apiRequest('GET', `/batch/${batchId}`);
+        const historyHTML = renderBatchDetail(result.data);
+        document.getElementById('batchDisplay').innerHTML = historyHTML;
+      } catch (error) {
+        showError('batchDisplay', error);
+      }
+    }
+
+    // Handle transfer form submission
+    document.getElementById('transferForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = {
+        fromOperator: document.getElementById('fromOperator').value,
+        toOperator: document.getElementById('toOperator').value,
+        step: document.getElementById('step').value,
+        reportId: document.getElementById('reportId').value
+      };
+      
+      const batchId = document.getElementById('transferBatchId').value;
+      
+      try {
+        showLoading('transferSection', 'Processing transfer...');
+        const result = await apiRequest('POST', `/v2/batch/${batchId}/event`, formData);
+        
+        document.getElementById('transferSection').innerHTML = `
+          <div class="success">✅ Transfer completed successfully!</div>
+          <div>Batch ${batchId} transferred from ${formData.fromOperator} to ${formData.toOperator}</div>
+          <div>Step: ${formData.step}</div>
+          <button onclick="location.reload()" class="btn">New Transfer</button>
+        `;
+      } catch (error) {
+        showError('transferSection', error);
+      }
+    });
+
+    // Load batches on page load
+    loadAllBatches();
+  </script>
 </body>
 </html>

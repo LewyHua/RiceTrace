@@ -4,12 +4,12 @@ const crypto = require('crypto');
 const { cloudflareR2, supabase, errorCodes } = require('../../config');
 
 /**
- * 质检报告服务
- * 负责报告文件的上传、存储和验证
+ * Report service
+ * Handles all business logic related to reports
  */
 class ReportService {
   constructor() {
-    // 初始化 R2 客户端 (兼容 S3 API)
+    // Initialize R2 client (compatible with S3 API)
     this.r2Client = new S3Client({
       region: cloudflareR2.region,
       endpoint: cloudflareR2.endpoint,
@@ -19,57 +19,57 @@ class ReportService {
       },
     });
 
-    // 初始化 Supabase 客户端
+    // Initialize Supabase client
     this.supabaseClient = createClient(supabase.url, supabase.anonKey, supabase.options);
   }
 
   /**
-   * 上传质检报告
-   * @param {Object} file - Multer文件对象
-   * @param {Object} uploaderInfo - 上传者信息
-   * @returns {Promise<Object>} 上传结果
+   * Upload quality inspection report
+   * @param {Object} file - Multer file object
+   * @param {Object} uploaderInfo - Uploader information
+   * @returns {Promise<Object>} Upload result
    */
   async uploadReport(file, uploaderInfo) {
     try {
       if (!file || !file.buffer) {
-        throw new Error(`${errorCodes.VALIDATION_ERROR}: 文件不能为空`);
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: File cannot be empty`);
       }
 
-      // 验证文件类型
+      // Validate file type
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
       if (!allowedTypes.includes(file.mimetype)) {
-        throw new Error(`${errorCodes.VALIDATION_ERROR}: 不支持的文件类型: ${file.mimetype}`);
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: Unsupported file type: ${file.mimetype}`);
       }
 
-      // 验证文件大小 (5MB)
+      // Validate file size (5MB)
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        throw new Error(`${errorCodes.VALIDATION_ERROR}: 文件大小不能超过5MB`);
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: File size cannot exceed 5MB`);
       }
 
-      console.log(`📤 开始上传报告: ${file.originalname}`);
+      console.log(`Start uploading report: ${file.originalname}`);
 
-      // 计算文件哈希
+      // Calculate file hash
       const fileHash = this._calculateFileHash(file.buffer);
-      console.log(`🔐 文件哈希计算完成: ${fileHash.substring(0, 16)}...`);
+      console.log(`File hash calculation completed: ${fileHash.substring(0, 16)}...`);
 
-      // 生成唯一的文件名
+      // Generate unique file name
       const fileKey = this._generateFileKey(file.originalname, fileHash);
 
-      // 上传到 R2
+      // Upload to R2
       await this._uploadToR2(fileKey, file.buffer, file.mimetype);
-      console.log(`☁️  文件已上传到R2: ${fileKey}`);
+      console.log(`File uploaded to R2: ${fileKey}`);
 
-      // 生成访问URL
+      // Generate access URL
       const fileUrl = `https://pub-${cloudflareR2.accountId}.r2.dev/${fileKey}`;
 
-      // 保存元数据到 Supabase
+      // Save metadata to Supabase
       const reportData = {
         file_hash: fileHash,
         file_name: file.originalname,
         file_url: fileUrl,
         file_key: fileKey,
-        status: 'PENDING', // 初始状态为待审核
+        status: 'PENDING', // Initial status is pending review
         uploaded_by: uploaderInfo.role || 'unknown',
         uploader_id: uploaderInfo.userId || null,
         content_type: file.mimetype,
@@ -83,11 +83,11 @@ class ReportService {
         .single();
 
       if (error) {
-        console.error('❌ Supabase插入失败:', error);
-        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库保存失败: ${error.message}`);
+        console.error('Supabase insertion failed:', error);
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: Database save failed: ${error.message}`);
       }
 
-      console.log(`✅ 报告上传成功，ID: ${data.id}`);
+      console.log(`Report uploaded successfully, ID: ${data.id}`);
 
       return {
         success: true,
@@ -95,29 +95,29 @@ class ReportService {
         fileHash: fileHash,
         fileUrl: fileUrl,
         status: data.status,
-        message: '质检报告上传成功，等待审核'
+        message: 'Quality inspection report uploaded successfully, waiting for review'
       };
 
     } catch (error) {
-      console.error('❌ 报告上传失败:', error.message);
+      console.error('Report upload failed:', error.message);
       throw error;
     }
   }
 
   /**
-   * 验证质检报告
-   * @param {string} reportId - 报告ID
-   * @returns {Promise<Object>} 验证结果
+   * Verify quality inspection report
+   * @param {string} reportId - Report ID
+   * @returns {Promise<Object>} Verification result
    */
   async verifyReport(reportId) {
     try {
       if (!reportId) {
-        throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID不能为空`);
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: Report ID cannot be empty`);
       }
 
-      console.log(`🔍 验证报告: ${reportId}`);
+      console.log(`Verify report: ${reportId}`);
 
-      // 从 Supabase 查询报告信息
+      // Query report information from Supabase
       const { data, error } = await this.supabaseClient
         .from('quality_reports')
         .select('*')
@@ -126,28 +126,28 @@ class ReportService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          throw new Error(`${errorCodes.NOT_FOUND}: 报告不存在: ${reportId}`);
+          throw new Error(`Report not found: Report ID ${reportId} does not exist`);
         }
-        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库查询失败: ${error.message}`);
+        throw new Error(`Database query failed: ${error.message}`);
       }
 
-      // 检查报告状态，提供用户友好的错误信息
+      // Check report status and provide user-friendly error messages
       if (data.status !== 'APPROVED') {
         let statusMessage = '';
         switch (data.status) {
           case 'PENDING':
-            statusMessage = '报告正在等待审核，请耐心等待管理员审批';
+            statusMessage = 'Report is pending review, please wait for admin approval';
             break;
           case 'REJECTED':
-            statusMessage = '报告已被拒绝，请重新上传符合要求的质检报告';
+            statusMessage = 'Report has been rejected, please upload a compliant quality report';
             break;
           default:
-            statusMessage = `报告状态异常: ${data.status}`;
+            statusMessage = `Report status is invalid: ${data.status}`;
         }
-        throw new Error(`${errorCodes.ORACLE_VERIFICATION_FAILED}: ${statusMessage} (报告ID: ${reportId})`);
+        throw new Error(`Oracle verification failed: ${statusMessage} (Report ID: ${reportId})`);
       }
 
-      console.log(`✅ 报告验证通过: ${reportId}`);
+      console.log(`Report verification passed: ${reportId}`);
 
       return {
         success: true,
@@ -164,15 +164,15 @@ class ReportService {
       };
 
     } catch (error) {
-      console.error('❌ 报告验证失败:', error.message);
+      console.error('Report verification failed:', error.message);
       throw error;
     }
   }
 
   /**
-   * 获取报告列表（按上传者）
-   * @param {string} uploaderRole - 上传者角色
-   * @returns {Promise<Array>} 报告列表
+   * Get report list (by uploader)
+   * @param {string} uploaderRole - Uploader role
+   * @returns {Promise<Array>} Report list
    */
   async getReportsByUploader(uploaderRole) {
     try {
@@ -183,19 +183,19 @@ class ReportService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库查询失败: ${error.message}`);
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: Database query failed: ${error.message}`);
       }
 
       return data || [];
     } catch (error) {
-      throw new Error(`获取报告列表失败: ${error.message}`);
+      throw new Error(`Failed to get report list: ${error.message}`);
     }
   }
 
   /**
-   * 计算文件哈希
-   * @param {Buffer} fileBuffer - 文件缓冲区
-   * @returns {string} SHA-256哈希
+   * Calculate file hash
+   * @param {Buffer} fileBuffer - File buffer
+   * @returns {string} SHA-256 hash
    * @private
    */
   _calculateFileHash(fileBuffer) {
@@ -203,10 +203,10 @@ class ReportService {
   }
 
   /**
-   * 生成文件键
-   * @param {string} originalName - 原始文件名
-   * @param {string} fileHash - 文件哈希
-   * @returns {string} 文件键
+   * Generate file key
+   * @param {string} originalName - Original file name
+   * @param {string} fileHash - File hash
+   * @returns {string} File key
    * @private
    */
   _generateFileKey(originalName, fileHash) {
@@ -216,10 +216,10 @@ class ReportService {
   }
 
   /**
-   * 上传文件到 R2
-   * @param {string} key - 文件键
-   * @param {Buffer} buffer - 文件缓冲区
-   * @param {string} contentType - 内容类型
+   * Upload file to R2
+   * @param {string} key - File key
+   * @param {Buffer} buffer - File buffer
+   * @param {string} contentType - Content type
    * @private
    */
   async _uploadToR2(key, buffer, contentType) {
@@ -228,28 +228,28 @@ class ReportService {
       Key: key,
       Body: buffer,
       ContentType: contentType,
-      // 设置公开可读
-      // ACL: 'public-read' // R2可能不支持ACL，通过bucket设置
+      // Set public read
+      // ACL: 'public-read' // R2 may not support ACL, set through bucket
     });
 
     await this.r2Client.send(command);
   }
 
   /**
-   * 更新报告状态 (管理员功能，用于开发测试)
-   * @param {string} reportId 报告ID
-   * @param {string} status 新状态 (APPROVED, REJECTED, PENDING)
-   * @returns {Promise<Object>} 更新结果
+   * Update report status (admin function, for development testing)
+   * @param {string} reportId - Report ID
+   * @param {string} status - New status (APPROVED, REJECTED, PENDING)
+   * @returns {Promise<Object>} Update result
    */
   async updateReportStatus(reportId, status) {
     try {
       if (!reportId || !status) {
-        throw new Error(`${errorCodes.VALIDATION_ERROR}: 报告ID和状态不能为空`);
+        throw new Error(`${errorCodes.VALIDATION_ERROR}: Report ID and status cannot be empty`);
       }
 
-      console.log(`📝 更新报告状态: ${reportId} -> ${status}`);
+      console.log(`Update report status: ${reportId} -> ${status}`);
 
-      // 更新 Supabase 中的报告状态
+      // Update report status in Supabase
       const { data, error } = await this.supabaseClient
         .from('quality_reports')
         .update({ 
@@ -261,29 +261,84 @@ class ReportService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          throw new Error(`${errorCodes.NOT_FOUND}: 报告不存在: ${reportId}`);
+          throw new Error(`${errorCodes.NOT_FOUND}: Report does not exist: ${reportId}`);
         }
-        throw new Error(`${errorCodes.INTERNAL_ERROR}: 数据库更新失败: ${error.message}`);
+        throw new Error(`${errorCodes.INTERNAL_ERROR}: Database update failed: ${error.message}`);
       }
 
-      console.log(`✅ 报告状态更新成功: ${reportId} -> ${status}`);
+      console.log(`Report status updated successfully: ${reportId} -> ${status}`);
 
       return {
         reportId: data.id,
-        oldStatus: 'unknown', // 我们没有保存旧状态
+        oldStatus: 'unknown', // We don't save old status
         newStatus: data.status,
         updatedAt: new Date().toISOString()
       };
 
     } catch (error) {
-      console.error(`❌ 更新报告状态失败: ${error.message}`);
+      console.error(`Update report status failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 获取服务状态
-   * @returns {Object} 服务状态
+   * Verify report and fetch as ReportDetail format for blockchain
+   * @param {string} reportId - Report ID
+   * @returns {Promise<Object>} ReportDetail formatted object
+   */
+  async verifyAndFetchReportDetail(reportId) {
+    try {
+      // Use existing verify method to get verified report
+      const verifyResult = await this.verifyReport(reportId);
+      const reportData = verifyResult.data;
+
+      // Convert to ReportDetail format for smart contract
+      const reportDetail = {
+        reportId: reportData.reportId,
+        reportType: this._determineReportType(reportData.fileName, reportData.contentType),
+        reportHash: reportData.fileHash,
+        summary: `Report ${reportData.fileName} - Verified by Oracle`,
+        isVerified: true,
+        verificationSource: 'RiceTrace-Oracle',
+        verificationTimestamp: new Date().toISOString(),
+        notes: `Uploaded by ${reportData.uploadedBy} at ${reportData.createdAt}`
+      };
+
+      return reportDetail;
+
+    } catch (error) {
+      console.error('Failed to verify and fetch report detail:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Determine report type based on filename and content
+   * @param {string} fileName - Original filename
+   * @param {string} contentType - File content type
+   * @returns {string} Report type
+   * @private
+   */
+  _determineReportType(fileName, contentType) {
+    const lowerName = fileName.toLowerCase();
+    
+    if (lowerName.includes('harvest')) return 'HarvestLog';
+    if (lowerName.includes('transport') || lowerName.includes('shipping')) return 'ShippingManifest';
+    if (lowerName.includes('quality') || lowerName.includes('test')) return 'QualityTest';
+    if (lowerName.includes('process') || lowerName.includes('mill')) return 'ProcessingRecord';
+    if (lowerName.includes('storage') || lowerName.includes('warehouse')) return 'StorageLog';
+    if (lowerName.includes('package') || lowerName.includes('pack')) return 'PackagingRecord';
+    
+    // Default based on content type
+    if (contentType.includes('pdf')) return 'InspectionReport';
+    if (contentType.includes('image')) return 'PhotoEvidence';
+    
+    return 'GeneralReport';
+  }
+
+  /**
+   * Get service status
+   * @returns {Object} Service status
    */
   getServiceStatus() {
     return {
@@ -300,6 +355,6 @@ class ReportService {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 const reportService = new ReportService();
 module.exports = reportService; 

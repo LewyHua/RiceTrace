@@ -3,77 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系统测试 - RiceTrace</title>
+    <title>System test - RiceTrace</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>RiceTrace 系统测试</h1>
+        <h1>RiceTrace system test</h1>
         
         <div class="section">
-            <h2>服务状态检查</h2>
-            <p>基础API服务正常运行中</p>
+            <h2>Service status check</h2>
+            <p>Basic API service is running</p>
         </div>
 
         <div class="section">
-            <h2>完整流程测试</h2>
-            <p>测试：上传报告 → 创建批次 → 转移批次的完整流程</p>
+            <h2>Complete process test</h2>
+            <p>Test: Upload report → Create batch → Complete the full process of transferring batches</p>
             <ol>
-                <li><a href="upload-report.html">1. 上传质检报告</a></li>
-                <li>2. 在 Supabase 后台将报告状态改为 APPROVED</li>
-                <li><a href="create.html">3. 创建批次（使用报告ID）</a></li>
-                <li><a href="upload-report.html">4. 上传新的质检报告</a></li>
-                <li>5. 审核通过新报告</li>
-                <li><a href="transfer.html">6. 转移批次（使用新报告ID）</a></li>
-                <li><a href="detail.html">7. 查看批次详情</a></li>
+                <li><a href="upload-report.html">1. Upload quality inspection report</a></li>
+                <li>2. Change the report status to APPROVED in the Supabase backend</li>
+                <li><a href="create.html">3. Create batch (use report ID)</a></li>
+                <li><a href="upload-report.html">4. Upload new quality inspection report</a></li>
+                <li>5. Review and approve the new report</li>
+                <li><a href="transfer.html">6. Transfer batch (use new report ID)</a></li>
+                <li><a href="detail.html">7. View batch details</a></li>
             </ol>
         </div>
 
         <div class="section">
-            <h2>API 端点测试</h2>
+            <h2>API endpoint test</h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button onclick="testAPI('/reports/status')">报告服务状态</button>
-                <button onclick="testAPI('/reports/my')">我的报告列表</button>
-                <button onclick="testAPI('/oracle/status')">Oracle 状态</button>
-                <button onclick="testAPI('/batch/stats')">批次统计</button>
-                <button onclick="testAPI('/batch')">批次列表</button>
-                <button onclick="testAPI('/health')">系统健康</button>
+                <button onclick="testAPI('/reports/status')">Report service status</button>
+                <button onclick="testAPI('/reports/my')">My report list</button>
+                <button onclick="testAPI('/oracle/status')">Oracle status</button>
+                <button onclick="testAPI('/batch/stats')">Batch statistics</button>
+                <button onclick="testAPI('/batch')">Batch list</button>
+                <button onclick="testAPI('/health')">System health</button>
             </div>
             <div id="apiTestResult"></div>
         </div>
 
         <div class="navigation">
-            <a href="index.html">返回首页</a>
+            <a href="index.html">Return to home page</a>
         </div>
     </div>
 
     <script src="common.js"></script>
     <script>
 
-        // 测试API端点
+        // Test API endpoint
         async function testAPI(endpoint) {
             const resultDiv = document.getElementById('apiTestResult');
-            showLoading('apiTestResult', `测试 ${endpoint}...`);
+            showLoading('apiTestResult', `Test ${endpoint}...`);
 
             try {
                 const result = await apiRequest('GET', endpoint, null, 'farmer');
                 
                 resultDiv.innerHTML = `
                     <div class="success">
-                        <h3>✅ ${endpoint} 测试成功</h3>
+                        <h3>✅ ${endpoint} test successful</h3>
                         <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">
 ${JSON.stringify(result, null, 2)}
                         </pre>
                     </div>
                 `;
             } catch (error) {
-                showError('apiTestResult', `${endpoint} 测试失败: ${error.message}`);
+                showError('apiTestResult', `${endpoint} test failed: ${error.message}`);
             }
         }
 
-        // 页面加载完成
+        // Page loaded
         window.addEventListener('load', () => {
-            console.log('系统测试页面加载完成');
+            console.log('System test page loaded');
         });
     </script>
 </body>

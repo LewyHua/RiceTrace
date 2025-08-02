@@ -6,22 +6,22 @@ const path = require('node:path');
 const { fabric, getRoleConfig, errorCodes } = require('../../config');
 
 /**
- * Fabric DAO 层
- * 负责管理与 Hyperledger Fabric 网络的所有连接和基础操作
+ * Fabric DAO layer
+ * Responsible for managing all connections and basic operations to the Hyperledger Fabric network
  */
 class FabricDAO {
   constructor() {
-    this.connections = new Map(); // 缓存连接，避免重复创建
+    this.connections = new Map(); // Cache connections to avoid duplicate creation
   }
 
   /**
-   * 获取指定角色的合约实例
-   * @param {string} role - 角色名称 (farmer, processor, consumer)
-   * @returns {Promise<Contract>} Fabric 合约实例
+   * Get contract instance for a specific role
+   * @param {string} role - Role name (farmer, processor, consumer)
+   * @returns {Promise<Contract>} Fabric contract instance
    */
   async getContract(role) {
     try {
-      // 检查是否已有缓存的连接
+      // Check if there is a cached connection
       if (this.connections.has(role)) {
         return this.connections.get(role);
       }
@@ -29,32 +29,32 @@ class FabricDAO {
       const roleConfig = getRoleConfig(role);
       const contract = await this._createContract(roleConfig);
       
-      // 缓存连接
+      // Cache connection
       this.connections.set(role, contract);
       
-      console.log(`✅ Fabric contract created for role: ${role}`);
+      console.log(`Fabric contract created for role: ${role}`);
       return contract;
     } catch (error) {
-      console.error(`❌ Failed to create contract for role ${role}:`, error.message);
+      console.error(`Failed to create contract for role ${role}:`, error.message);
       throw new Error(`${errorCodes.FABRIC_ERROR}: Failed to connect to Fabric network: ${error.message}`);
     }
   }
 
   /**
-   * 创建 Fabric 合约连接
+   * Create Fabric contract connection
    * @private
    */
   async _createContract(roleConfig) {
     const { paths, mspId, peerEndpoint, peerHostAlias } = roleConfig;
 
-    // 创建 gRPC 客户端
+    // Create gRPC client
     const client = await this._createGrpcClient(paths.tlsCertPath, peerEndpoint, peerHostAlias);
     
-    // 创建身份和签名器
+    // Create identity and signer
     const identity = await this._createIdentity(mspId, paths.certDirectoryPath);
     const signer = await this._createSigner(paths.keyDirectoryPath);
 
-    // 建立网关连接
+    // Establish gateway connection
     const gateway = connect({
       client,
       identity,
@@ -71,7 +71,7 @@ class FabricDAO {
   }
 
   /**
-   * 创建 gRPC 客户端
+   * Create gRPC client
    * @private
    */
   async _createGrpcClient(tlsCertPath, peerEndpoint, peerHostAlias) {
@@ -84,7 +84,7 @@ class FabricDAO {
   }
 
   /**
-   * 创建身份
+   * Create identity
    * @private
    */
   async _createIdentity(mspId, certDirectoryPath) {
@@ -94,7 +94,7 @@ class FabricDAO {
   }
 
   /**
-   * 创建签名器
+   * Create signer
    * @private
    */
   async _createSigner(keyDirectoryPath) {
@@ -105,7 +105,7 @@ class FabricDAO {
   }
 
   /**
-   * 获取目录中的第一个文件
+   * Get the first file in the directory
    * @private
    */
   async _getFirstFileInDirectory(dirPath) {
@@ -121,11 +121,11 @@ class FabricDAO {
   }
 
   /**
-   * 执行查询操作（只读）
-   * @param {string} role - 角色
-   * @param {string} method - 合约方法名
-   * @param {...string} args - 方法参数
-   * @returns {Promise<any>} 查询结果
+   * Execute query operation (read-only)
+   * @param {string} role - Role
+   * @param {string} method - Contract method name
+   * @param {...string} args - Method parameters
+   * @returns {Promise<any>} Query result
    */
   async evaluateTransaction(role, method, ...args) {
     try {
@@ -140,30 +140,30 @@ class FabricDAO {
   }
 
   /**
-   * 执行提交操作（写入）
-   * @param {string} role - 角色
-   * @param {string} method - 合约方法名
-   * @param {...string} args - 方法参数
-   * @returns {Promise<any>} 提交结果
+   * Execute submit operation (write)
+   * @param {string} role - Role
+   * @param {string} method - Contract method name
+   * @param {...string} args - Method parameters
+   * @returns {Promise<any>} Submit result
    */
   async submitTransaction(role, method, ...args) {
     try {
       const contract = await this.getContract(role);
       const result = await contract.submitTransaction(method, ...args);
-      console.log(`✅ Transaction submitted successfully: ${method}`);
+      console.log(`Transaction submitted successfully: ${method}`);
       return result;
     } catch (error) {
-      console.error(`❌ Submit transaction failed [${method}]:`, error.message);
+      console.error(`Submit transaction failed [${method}]:`, error.message);
       throw new Error(`${errorCodes.FABRIC_ERROR}: ${error.message}`);
     }
   }
 
   /**
-   * 异步提交操作
-   * @param {string} role - 角色
-   * @param {string} method - 合约方法名
-   * @param {Object} options - 提交选项
-   * @returns {Promise<any>} 提交结果
+   * Asynchronous submit operation
+   * @param {string} role - Role
+   * @param {string} method - Contract method name
+   * @param {Object} options - Submit options
+   * @returns {Promise<any>} Submit result
    */
   async submitAsyncTransaction(role, method, options = {}) {
     try {
@@ -171,28 +171,28 @@ class FabricDAO {
       const commit = await contract.submitAsync(method, options);
       const result = new TextDecoder().decode(commit.getResult());
       
-      // 等待交易确认
+      // Wait for transaction confirmation
       const status = await commit.getStatus();
       if (!status.successful) {
         throw new Error(`Transaction ${status.transactionId} failed to commit`);
       }
       
-      console.log(`✅ Async transaction committed successfully: ${method}`);
+      console.log(`Async transaction committed successfully: ${method}`);
       return result;
     } catch (error) {
-      console.error(`❌ Async submit transaction failed [${method}]:`, error.message);
+      console.error(`Async submit transaction failed [${method}]:`, error.message);
       throw new Error(`${errorCodes.FABRIC_ERROR}: ${error.message}`);
     }
   }
 
   /**
-   * 清理所有连接
+   * Clean up all connections
    */
   async cleanup() {
-    console.log('🧹 Cleaning up Fabric connections...');
+    console.log('Cleaning up Fabric connections...');
     for (const [role, contract] of this.connections) {
       try {
-        // 这里可以添加具体的清理逻辑，比如关闭gateway
+        // Here you can add specific cleanup logic, such as closing the gateway
         console.log(`Connection for ${role} cleaned up`);
       } catch (error) {
         console.error(`Error cleaning up connection for ${role}:`, error.message);
@@ -202,7 +202,7 @@ class FabricDAO {
   }
 
   /**
-   * 获取连接状态
+   * Get connection status
    */
   getConnectionStatus() {
     return {
@@ -212,7 +212,7 @@ class FabricDAO {
   }
 }
 
-// 创建单例实例
+// Create singleton instance
 const fabricDAO = new FabricDAO();
 
 module.exports = fabricDAO; 
