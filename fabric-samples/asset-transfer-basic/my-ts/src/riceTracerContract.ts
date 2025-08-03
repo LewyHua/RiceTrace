@@ -5,9 +5,9 @@
 import { Context, Contract, Info, Returns, Transaction } from 'fabric-contract-api';
 import stringify from 'json-stringify-deterministic';
 import sortKeysRecursive from 'sort-keys-recursive';
-import { RiceBatch, Product, ProductWithBatch, TestResult, OrganizationType, OrganizationInfo, HistoryEvent, ReportDetail } from './types';
+import { RiceBatch, OrganizationType, OrganizationInfo, HistoryEvent, ReportDetail } from './types';
 
-@Info({ title: 'RiceTracerContract', description: 'Smart contract for rice traceability system' })
+@Info({ title: 'RiceTracerContract', description: 'Smart contract for rice batch tracing and transfer operations' })
 export class RiceTracerContract extends Contract {
 
     /**
@@ -70,12 +70,10 @@ export class RiceTracerContract extends Contract {
     @Returns('string')
     public async GetPermissionMatrix(ctx: Context): Promise<string> {
         const permissionMatrix = {
-            "Method Permission Configuration": {
+            "RiceTracerContract Method Permission Configuration": {
                 "InitLedger": ["Farm"],
                 "CreateRiceBatch": ["Farm"], 
                 "CompleteStepAndTransfer": ["Farm", "Middleman/Tester"],
-                "CreateProduct": ["Middleman/Tester"],
-                "ReadProduct": ["All Organizations"],
                 "ReadRiceBatch": ["All Organizations"],
                 "RiceBatchExists": ["All Organizations"],
                 "GetAllRiceBatches": ["All Organizations"],
@@ -168,30 +166,6 @@ export class RiceTracerContract extends Contract {
                 Buffer.from(stringify(sortKeysRecursive(batch)))
             );
         }
-
-        const products: Product[] = [
-            {
-                docType: 'product',
-                productId: 'product1',
-                batchId: 'batch1',
-                packageDate: now,
-                owner: 'Processor A'
-            },
-            {
-                docType: 'product',
-                productId: 'product2',
-                batchId: 'batch2',
-                packageDate: now,
-                owner: 'Processor B'
-            }
-        ];
-
-        for (const product of products) {
-            await ctx.stub.putState(
-                `product_${product.productId}`,
-                Buffer.from(stringify(sortKeysRecursive(product)))
-            );
-        }
     }
 
     /**
@@ -219,7 +193,7 @@ export class RiceTracerContract extends Contract {
         }
 
         // Parse initial test result
-        const initialTestResult: TestResult = JSON.parse(initialTestResultJSON);
+        const initialTestResult = JSON.parse(initialTestResultJSON);
 
         // Get transaction timestamp
         const txTimestamp = ctx.stub.getTxTimestamp();
@@ -262,8 +236,6 @@ export class RiceTracerContract extends Contract {
             Buffer.from(stringify(sortKeysRecursive(batch)))
         );
     }
-
-
 
     /**
      * Complete step and transfer - new unified transaction method
@@ -350,66 +322,6 @@ export class RiceTracerContract extends Contract {
         };
         
         return JSON.stringify(statusInfo, null, 2);
-    }
-
-    /**
-     * Create product
-     * Permission: Only middleman/tester can call
-     */
-    @Transaction()
-    public async CreateProduct(
-        ctx: Context,
-        productId: string,
-        batchId: string,
-        packageDate: string,
-        owner: string
-    ): Promise<void> {
-        // Check permission: Only middleman can create final product
-        this.checkPermission(ctx, [OrganizationType.MIDDLEMAN_TESTER]);
-
-        const existingProduct = await ctx.stub.getState(`product_${productId}`);
-        if (existingProduct && existingProduct.length > 0) {
-            throw new Error(`Product ${productId} already exists`);
-        }
-
-        const batchExists = await this.RiceBatchExists(ctx, batchId);
-        if (!batchExists) {
-            throw new Error(`Batch ${batchId} does not exist`);
-        }
-
-        const product: Product = {
-            docType: 'product',
-            productId,
-            batchId,
-            packageDate,
-            owner
-        };
-
-        await ctx.stub.putState(
-            `product_${productId}`,
-            Buffer.from(stringify(sortKeysRecursive(product)))
-        );
-    }
-
-    /**
-     * Read product information (includes associated batch information)
-     * Permission: No restriction
-     */
-    @Transaction(false)
-    @Returns('ProductWithBatch')
-    public async ReadProduct(ctx: Context, productId: string): Promise<ProductWithBatch> {
-        const productJSON = await ctx.stub.getState(`product_${productId}`);
-        if (!productJSON || productJSON.length === 0) {
-            throw new Error(`Product ${productId} does not exist`);
-        }
-
-        const product: Product = JSON.parse(productJSON.toString());
-        const batch = await this.ReadRiceBatch(ctx, product.batchId);
-
-        return {
-            product,
-            batch
-        };
     }
 
     /**

@@ -87,8 +87,45 @@ export class HistoryEvent {
 @Object()
 export class TestResult {
     @Property()
+    public docType: string = 'testResult';
+
+    @Property()
     public testId: string = '';
 
+    @Property()
+    public batchId: string = '';
+
+    @Property()
+    public testType: string = '';
+
+    @Property()
+    public testDate: string = '';
+
+    @Property()
+    public testResult: string = '';
+
+    @Property()
+    public tester: string = '';
+
+    @Property()
+    public notes: string = '';
+
+    @Property()
+    public isVerified: boolean = false;
+
+    @Property()
+    public verificationSource: string = '';
+
+    @Property()
+    public verificationTimestamp: string = '';
+
+    @Property()
+    public reportHash: string = '';
+
+    @Property()
+    public reportId: string = '';
+
+    // Legacy fields for backward compatibility
     @Property()
     public testerId: string = '';
 
@@ -104,36 +141,14 @@ export class TestResult {
     @Property()
     public result: string = '';
 
-    // Oracle verification related fields
-    @Property()
-    public isVerified: boolean = false;
-
-    @Property()
-    public verificationSource?: string;
-
     @Property()
     public externalReportId?: string;
-
-    @Property()
-    public tester?: string;
-
-    @Property()
-    public testDate?: string;
 
     @Property()
     public laboratory?: string;
 
     @Property()
     public certificationNumber?: string;
-
-    @Property()
-    public notes?: string;
-
-    @Property()
-    public reportHash?: string;
-
-    @Property()
-    public reportId?: string;
 }
 
 /**
@@ -185,6 +200,48 @@ export class Product {
 
     @Property()
     public owner: string = '';
+}
+
+/**
+ * Quality certificate structure
+ */
+@Object()
+export class QualityCertificate {
+    @Property()
+    public docType: string = 'qualityCertificate';
+
+    @Property()
+    public certificateId: string = '';
+
+    @Property()
+    public batchId: string = '';
+
+    @Property()
+    public testIds: string[] = [];
+
+    @Property()
+    public certificateType: string = '';
+
+    @Property()
+    public issueDate: string = '';
+
+    @Property()
+    public issuer: string = '';
+
+    @Property()
+    public validityPeriod: string = '';
+
+    @Property()
+    public standards: string = '';
+
+    @Property()
+    public isActive: boolean = true;
+
+    @Property()
+    public createdTimestamp: string = '';
+
+    @Property()
+    public lastUpdated: string = '';
 }
 
 /**

@@ -3,6 +3,10 @@
  */
 
 import { RiceTracerContract } from './riceTracerContract';
+import { ProductManagementContract } from './productManagementContract';
+import { QualityCertificationContract } from './qualityCertificationContract';
 
 module.exports.RiceTracerContract = RiceTracerContract;
-module.exports.contracts = [RiceTracerContract]; 
+module.exports.ProductManagementContract = ProductManagementContract;
+module.exports.QualityCertificationContract = QualityCertificationContract;
+module.exports.contracts = [RiceTracerContract, ProductManagementContract, QualityCertificationContract]; 
