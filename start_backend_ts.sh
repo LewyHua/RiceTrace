@@ -45,4 +45,4 @@ docker run -d \
 
 echo "✅ TypeScript chaincode deployment completed!"
 echo "🔴 Redis container started on port 6379"
-echo "🎯 You can now start the Node.js API server with: cd fabric-samples/asset-transfer-basic/my-js && npm start" 
+echo "🎯 You can now start the Node.js API server with: cd fabric-samples/asset-transfer-basic/my-js && npm install && npm start" 
