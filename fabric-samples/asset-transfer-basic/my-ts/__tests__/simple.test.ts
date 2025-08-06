@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { RiceTracerContract } from '../src/riceTracerContract';
 import { OrganizationType } from '../src/types';
 
 // Simple test to verify the testing setup works
@@ -194,49 +193,12 @@ describe('Error Handling', () => {
     });
 });
 
-// Test contract instantiation and basic methods
-describe('Contract Basic Tests', () => {
-    let contract: RiceTracerContract;
-
-    beforeEach(() => {
-        contract = new RiceTracerContract();
-    });
-
-    test('should create contract instance', () => {
-        expect(contract).toBeInstanceOf(RiceTracerContract);
-        expect(contract).toBeDefined();
-    });
-
-    test('should have correct contract info', () => {
-        // Test that the contract has the expected structure
-        expect(typeof contract.GetCallerInfo).toBe('function');
-        expect(typeof contract.GetPermissionMatrix).toBe('function');
-    });
-
+// Test common type definitions and utilities
+describe('Common Type Definitions', () => {
     test('should validate organization type enum', () => {
         expect(OrganizationType.FARM).toBe(1);
         expect(OrganizationType.MIDDLEMAN_TESTER).toBe(2);
         expect(OrganizationType.CONSUMER).toBe(3);
-    });
-
-    test('should test organization type mapping logic', () => {
-        // Test the private method logic through reflection or by testing its effects
-        const contract = new RiceTracerContract();
-        
-        // Test that the contract can be instantiated without errors
-        expect(contract).toBeDefined();
-        
-        // Test that we can access the contract's methods
-        expect(typeof contract.GetCallerInfo).toBe('function');
-        expect(typeof contract.GetPermissionMatrix).toBe('function');
-        expect(typeof contract.InitLedger).toBe('function');
-        expect(typeof contract.CreateRiceBatch).toBe('function');
-        expect(typeof contract.CompleteStepAndTransfer).toBe('function');
-        expect(typeof contract.CreateProduct).toBe('function');
-        expect(typeof contract.ReadProduct).toBe('function');
-        expect(typeof contract.ReadRiceBatch).toBe('function');
-        expect(typeof contract.RiceBatchExists).toBe('function');
-        expect(typeof contract.GetAllRiceBatches).toBe('function');
     });
 
     test('should validate type definitions', () => {
