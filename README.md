@@ -302,6 +302,12 @@ CLOUDFLARE_ACCESS_KEY_ID=your-access-key
 CLOUDFLARE_SECRET_ACCESS_KEY=your-secret-key
 CLOUDFLARE_BUCKET_NAME=your-bucket-name
 
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
 # Other Configurations
 NODE_ENV=development
 PORT=3000
