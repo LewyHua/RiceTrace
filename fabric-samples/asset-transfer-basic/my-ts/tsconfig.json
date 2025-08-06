@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "target": "es2020",
     "moduleResolution": "node",
     "module": "commonjs",
@@ -20,8 +21,7 @@
     "types": ["jest", "node"]
   },
   "include": [
-    "./src/**/*",
-    "./__tests__/**/*"
+    "./src/**/*"
   ],
   "exclude": [
     "node_modules"

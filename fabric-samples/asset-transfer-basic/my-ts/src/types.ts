@@ -216,7 +216,7 @@ export class QualityCertificate {
     @Property()
     public batchId: string = '';
 
-    @Property()
+    @Property('testIds', 'string[]')
     public testIds: string[] = [];
 
     @Property()
