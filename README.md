@@ -50,7 +50,9 @@ RiceTrace/
 -   Node.js >= 18
 -   Docker
 -   TypeScript (included in dev dependencies)
--   For detailed prerequisites, refer to the [Hyperledger Fabric Prerequisites](https://hyperledger-fabric.readthedocs.io/en/latest/prereqs.html). After fulfilling all prerequisites, execute `./install-fabric.sh` to set up the Fabric network.
+-   For detailed prerequisites, refer to the [Hyperledger Fabric Prerequisites](https://hyperledger-fabric.readthedocs.io/en/latest/prereqs.html). After fulfilling all prerequisites, 
+
+execute `./install-fabric.sh` to set up the Fabric network.
 
 ### 2. Start Fabric Network and Smart Contracts (Backend)
 
